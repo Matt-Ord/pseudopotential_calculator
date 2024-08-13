@@ -1,0 +1,19 @@
+{
+    "id": "castep",
+    "version": "0.0.1",
+    "name": "CASTEP",
+    "description": "Installs CASTEP",
+    "options": {
+        "version": {
+            "type": "string",
+            "proposals": [
+                "24.1"
+            ],
+            "default": "24.1",
+            "description": "Select a version to install."
+        }
+    },
+    "installsAfter": [
+        "ghcr.io/devcontainers/features/common-utils"
+    ]
+}
