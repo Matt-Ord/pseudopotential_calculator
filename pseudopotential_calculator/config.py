@@ -2,7 +2,6 @@
 
 # Lattice parameter for Copper
 from dataclasses import dataclass
-from pathlib import Path
 
 # CASTEP settings
 
@@ -10,13 +9,9 @@ from pathlib import Path
 @dataclass
 class CASTEPConfig:
     # k-point grid
-    k_range = range(2, 10)
+    k_range = range(1, 10)
     k_point = 6
-    k_points: int = 6, 6, 6
     # calculation
     cut_off_energy: float = 340  # eV
     xc_functional: str = "PBE"
     castep_command: str = "castep.serial"
-    # save data
-    calculation_directory: Path
-    file_name: str
