@@ -1,19 +1,15 @@
-from ast import Dict
-from pathlib import Path
-
-from ase.build import bulk
+from ase import Atom
 from ase.calculators.castep import Castep
-from numpy import nonzero
 
 from pseudopotential_calculator.config import CASTEPConfig
 
-def get_castep_calculator(
 
+def get_castep_calculator(
     directory: str,
     label: str,
     k: int,
     config: CASTEPConfig,
-) -> None:
+) -> Castep:
     """Set up the CASTEP calculation parameters using the values from config."""
     calculation = Castep(
         directory=directory,
@@ -35,19 +31,20 @@ def get_castep_calculator(
     calculation.task = "GeometryOptimization"  # type: ignore
 
     # Optional: set additional settings if needed
-    calculation._track_output = False  # type: ignore # noqa: SLF001
+    calculation._track_output = False  # type: ignore # noqa: SLF001CASTEPConfig
+    return calculation
+
 
 # TODO delete submit_script files and use environmental variables
 def prepare_submit_script(
-    submit_script_from_path: str = "scripts/submit_script.sh" ,
-    config: CASTEPConfig,
+    submit_script_from_path: str = "scripts/submit_script.sh",
+    config: CASTEPConfig = CASTEPConfig(),
 ) -> None:
-
     """Read the submit script, replace placeholders, and write it to the target location."""
     with open(submit_script_from_path) as file:
-            content = file.read()
+        content = file.read()
     for k in config.k_range:
-        directory = f"data/bulk_cu_{k}x{k}x{k}"
+        directory = f"data1/bulk_cu_{k}x{k}x{k}"
         submit_script_to_path = os.path.join(directory, "submit_job.sh")
         replacements = {"bulk_cu_nxnxn": f"bulk_cu_{k}x{k}x{k}"}
         for n, k in replacements.items():
@@ -57,22 +54,22 @@ def prepare_submit_script(
             f.write(content)
 
     """Write the submit_all_script into the data directory."""
-    submit_all_script_to_path = os.path.join("data", "submit_all.sh")
-    submit_all_script_from_path = os.path.join("scripts/submit_all_script.sh" )
+    submit_all_script_to_path = os.path.join("data1", "submit_all.sh")
+    submit_all_script_from_path = os.path.join("scripts/submit_all_script.sh")
 
-    with open(submit_all_script_from_path, "r") as template_file:
+    with open(submit_all_script_from_path) as template_file:
         content = template_file.read()
 
     with open(submit_all_script_to_path, "w") as f:
-
         f.write(content)
 
-def prepare_calculations(atom, config:CASTEPConfig) -> None:
+
+def prepare_calculations(atom: Atom, config: CASTEPConfig) -> None:
     """Prepare and run calculations for the given range of k."""
     for k in config.k_range:
         directory = f"data/bulk_cu_{k}x{k}x{k}"
         label = f"bulk_cu_{k}x{k}x{k}"
-        calculation = get_castep_calculator(directory, label, k)
+        calculation = get_castep_calculator(directory, label, k, config)
         calculation.set_atoms(atom)
         atom.set_calculator(calculation)
 
