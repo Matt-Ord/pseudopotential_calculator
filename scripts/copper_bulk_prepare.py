@@ -1,30 +1,11 @@
-import os
-from pathlib import Path
 from ase.build import bulk
-from ase.calculators.castep import Castep
 
-from pseudopotential_calculator.config import CASTEPConfig
 from pseudopotential_calculator import prepare
+from pseudopotential_calculator.config import CASTEPConfig
 
-config = CASTEPConfig(
-    atom_name= "Cu"
-    lattice_parameter= 3.8
-    lattice_type= "fcc",
-)
-
-atom = bulk("Cu","fcc")
-
-
+config = CASTEPConfig()
+bulk_copper = bulk("Cu", "fcc", 3.8)
 
 if __name__ == "__main__":
-
-
-
-bulk_copper = prepare.create_bulk_structure(config)
-
-
-
-
-
-    prepare_calculations(config.k_range)  # Use k_range from config
-    write_submit_all_script()
+    prepare.prepare_calculations(bulk_copper, config)
+    prepare.prepare_submit_script("scripts/submit_script.sh", config)

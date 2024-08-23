@@ -13,10 +13,6 @@ class CASTEPConfig:
     k_range = range(2, 10)
     k_point = 6
     k_points: int = 6, 6, 6
-    # atom
-    atom_name: str
-    lattice_parameter: float = 3.8  # Angstroms
-    lattice_type: str = "fcc"
     # calculation
     cut_off_energy: float = 340  # eV
     xc_functional: str = "PBE"

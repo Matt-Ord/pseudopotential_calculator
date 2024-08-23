@@ -1,13 +1,15 @@
+from ast import Dict
 from pathlib import Path
 
 from ase.build import bulk
 from ase.calculators.castep import Castep
+from numpy import nonzero
 
-from scripts.config import CASTEPConfig
-#fdsad
+from pseudopotential_calculator.config import CASTEPConfig
 
-def get_default_castep_setup(
-    directory: Path,
+def get_castep_calculator(
+
+    directory: str,
     label: str,
     k: int,
     config: CASTEPConfig,
@@ -35,21 +37,16 @@ def get_default_castep_setup(
     # Optional: set additional settings if needed
     calculation._track_output = False  # type: ignore # noqa: SLF001
 
-
-def create_bulk_structure(config: CASTEPConfig):
-    return bulk(config.atom_name, config.lattice_type, config.lattice_parameter)
-
-
+# TODO delete submit_script files and use environmental variables
 def prepare_submit_script(
     submit_script_from_path: str = "scripts/submit_script.sh" ,
-    submit_script_to_path: str,
-    replacements: dict,
+    config: CASTEPConfig,
 ) -> None:
 
     """Read the submit script, replace placeholders, and write it to the target location."""
     with open(submit_script_from_path) as file:
             content = file.read()
-    for k in k_range:
+    for k in config.k_range:
         directory = f"data/bulk_cu_{k}x{k}x{k}"
         submit_script_to_path = os.path.join(directory, "submit_job.sh")
         replacements = {"bulk_cu_nxnxn": f"bulk_cu_{k}x{k}x{k}"}
@@ -70,25 +67,18 @@ def prepare_submit_script(
 
         f.write(content)
 
-def prepare_calculations(config:CASTEPConfig) -> None:
+def prepare_calculations(atom, config:CASTEPConfig) -> None:
     """Prepare and run calculations for the given range of k."""
-
-
     for k in config.k_range:
         directory = f"data/bulk_cu_{k}x{k}x{k}"
         label = f"bulk_cu_{k}x{k}x{k}"
-        calculation = get_castep_calculator_bulk(directory, label, k)
-        calculation.set_atoms(bulk_copper)
-        bulk_copper.set_calculator(calculation)
+        calculation = get_castep_calculator(directory, label, k)
+        calculation.set_atoms(atom)
+        atom.set_calculator(calculation)
 
         if calculation.dryrun_ok():
-            print("ok")
+            print("dry run ok")
             calculation.prepare_input_files()
-            write_submit_script(
-                submit_script_from_path,
-                submit_script_to_path,
-                replacements,
-            )
         else:
             msg = "dryrun failed"
             raise Exception(msg)
