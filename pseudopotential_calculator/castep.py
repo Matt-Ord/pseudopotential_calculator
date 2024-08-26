@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -50,3 +53,17 @@ def get_default_calculator(
 
 def prepare_calculator(calculator: Castep) -> None:
     calculator.prepare_input_files()  # type: ignore bad lib types
+
+
+def load_all_calculators(directory: Path) -> list[Castep]:
+    out = list[Castep]()
+    for root, _, files in os.walk(directory):
+        for file in files:
+            if Path(file).suffix == ".castep":
+                root_path = Path(root)
+                path = f"{(Path(root) / file).absolute()}"
+                calculator = get_default_calculator(CastepConfig(root_path, file))
+                calculator.read(path)  # type: ignore unknown
+                out.append(calculator)
+
+    return out
