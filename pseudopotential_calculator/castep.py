@@ -34,7 +34,6 @@ def get_default_calculator(
     calculator = Castep(
         directory=config.directory.as_posix(),
         label=config.label,
-        check_castep_version=True,
         keyword_tolerance=0,
     )
 
@@ -42,6 +41,9 @@ def get_default_calculator(
     calculator._track_output = False  # type: ignore only way # noqa: SLF001
     calculator._try_reuse = True  # type: ignore only way # noqa: SLF001
     calculator._pedantic = True  # type: ignore only way # noqa: SLF001
+    calculator._set_atoms = True  # type: ignore only way # noqa: SLF001
+    calculator.param.num_dump_cycles = 0
+    calculator.param.reuse = True
 
     return calculator
 

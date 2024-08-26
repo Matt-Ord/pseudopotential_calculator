@@ -36,9 +36,9 @@ class HPCTaskConfig:
     time: str = field(default="12:00:00", kw_only=True)
 
 
-def get_submit_script(calculation: Castep, config: HPCTaskConfig | None = None) -> str:
+def get_submit_script(calculator: Castep, config: HPCTaskConfig | None = None) -> str:
     config = HPCTaskConfig() if config is None else config
-    label = get_calculator_label(calculation)
+    label = get_calculator_label(calculator)
     return f"""#!/bin/bash
 #SBATCH --account={config.account}
 #SBATCH --partition={config.partition}
@@ -57,8 +57,8 @@ mpirun castep.mpi {label}
 """
 
 
-def _get_submit_file_path(calculation: Castep) -> Path:
-    directory = get_calculator_directory(calculation)
+def _get_submit_file_path(calculator: Castep) -> Path:
+    directory = get_calculator_directory(calculator)
     return directory / "submit.sh"
 
 
