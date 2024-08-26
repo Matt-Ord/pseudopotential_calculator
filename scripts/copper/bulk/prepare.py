@@ -12,14 +12,17 @@ from pseudopotential_calculator.hpc import (
     prepare_calculator_with_submit_script,
     prepare_submit_all_script,
 )
+from pseudopotential_calculator.util import prepare_clean_directory
 
 if __name__ == "__main__":
     bulk_copper = bulk("Cu", "fcc", 3.8)  #
-    data_path = Path("data")
+    data_path = Path("data/copper/bulk")
+
+    prepare_clean_directory(data_path)
 
     calculators = list[Castep]()
 
-    for n_k_points in range(10):
+    for n_k_points in range(1, 11):
         config = CastepConfig(data_path / f"bulk_{n_k_points}", "bulk")
         params = BulkOptimizationParams(n_k_points=n_k_points)
         calculator = get_bulk_optimization_calculator(bulk_copper, params, config)

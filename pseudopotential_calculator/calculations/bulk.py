@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Self, cast
+from typing import TYPE_CHECKING, Any, Self, cast, overload
 
+import numpy as np
 from ase import Atoms
-from surface_potential_analysis.util.plot import get_figure
 
 from pseudopotential_calculator.castep import CastepConfig, get_default_calculator
+from pseudopotential_calculator.util import get_figure
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from ase.calculators.castep import Castep
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
@@ -51,75 +50,106 @@ def get_bulk_optimization_calculator(
     return calculation
 
 
-def bond_length_convergence_test(
-    directory: Path,
-) -> tuple[list[int], list[list[float]]]:
-    k_values = []
-    bond_lengths = []
-    previous_bond_length = None
-    is_converged = False
-
-    for n in CASTEPConfig.k_range:
-        atoms = read(f"./data/bulk_cu_{n}x{n}x{n}/bulk_cu_{n}x{n}x{n}.castep")
-        # Get cell parameters using deprecated method
-        lengths_and_angles = atoms.get_cell_lengths_and_angles()
-
-        k_values.append(n)
-        bond_length = lengths_and_angles[0]
-        print(bond_length)
-        bond_lengths.append(bond_length)
-
-        if previous_bond_length is not None:
-            # Compute the difference in cell parameters
-            length_diff = abs(bond_length - previous_bond_length)
-
-            print(f"k = {n}, Bond length = {bond_length}")
-            print(f"ΔLengths = {length_diff}")
-
-            if length_diff < convergence_threshold:
-                is_converged = True
-                print(f"Converged at k = {n}")
-                break
-        else:
-            print(f"k = {n}, Bond length = {bond_length}")
-        previous_bond_length = bond_length
-
-    if not is_converged:
-        print("The cell parameters did not converge within the tested k-point grids.")
-
-    return k_values, bond_lengths
-
-
-def _get_unit_cell_displacements_from_calculator(calculator: Castep) -> tuple[float]:
-    return cast(Atoms, calculator.atoms).get_cell_lengths_and_angles()[0:3]  # type: ignore unknown
-
-
-# Function to plot bond length vs k-points
-def _plot_bond_length_against_n_k_points(
-    n_k_points: list[float],
-    bond_lengths: list[float],
+def _plot_cell_length_against_n_k_points(
+    n_k_points: np.ndarray[Any, np.dtype[np.float64]],
+    bond_lengths: np.ndarray[Any, np.dtype[np.float64]],
     *,
     ax: Axes | None = None,
 ) -> tuple[Figure, Axes, Line2D]:
     fig, ax = get_figure(ax)
 
-    (line,) = ax.plot(n_k_points, bond_lengths)
-    ax.set_xlabel("k-point grid size (n)")
-    ax.set_ylabel("Bond Length (Angstrom)")
-    ax.set_title("Convergence Test: Bond Length vs k-point grid")
+    args = np.argsort(n_k_points)
+    (line,) = ax.plot(n_k_points[args], bond_lengths[args])  # type: ignore library
+    ax.set_xlabel("number of k-points")  # type: ignore library
+    ax.set_ylabel(r"Cell Length / $\AA$")  # type: ignore library
+    ax.set_title("Plot of cell length vs number of k-points")  # type: ignore library
     return fig, ax, line
 
 
-def plot_bond_length_convergence(
+def _plot_energy_against_n_k_points(
+    n_k_points: np.ndarray[Any, np.dtype[np.float64]],
+    energy: np.ndarray[Any, np.dtype[np.float64]],
+    *,
+    ax: Axes | None = None,
+) -> tuple[Figure, Axes, Line2D]:
+    fig, ax = get_figure(ax)
+
+    args = np.argsort(n_k_points)
+    (line,) = ax.plot(n_k_points[args], energy[args])  # type: ignore library
+    ax.set_xlabel("number of k-points")  # type: ignore library
+    ax.set_ylabel("Energy / eV")  # type: ignore library
+    ax.set_title("Plot of energy vs number of k-points")  # type: ignore library
+    return fig, ax, line
+
+
+def _get_cell_lengths_from_calculator(
+    calculator: Castep,
+) -> tuple[float, ...]:
+    return cast(Atoms, calculator.atoms).get_cell_lengths_and_angles()[0:3]  # type: ignore unknown
+
+
+@overload
+def _get_n_k_points_from_calculator(
+    calculator: Castep,
+    direction: None = None,
+) -> tuple[int, ...]:
+    ...
+
+
+@overload
+def _get_n_k_points_from_calculator(
+    calculator: Castep,
+    direction: int,
+) -> int:
+    ...
+
+
+def _get_n_k_points_from_calculator(
+    calculator: Castep,
+    direction: int | None = None,
+) -> tuple[int, ...] | int:
+    kpoint_mp_grid = cast(
+        tuple[int, ...],
+        calculator.cell.kpoint_mp_grid.raw_value,  # type: ignore unkown
+    )
+    if direction is None:
+        return kpoint_mp_grid
+    return kpoint_mp_grid[direction]
+
+
+def plot_cell_length_convergence(
     calculators: list[Castep],
+    direction: int = 0,
     *,
     ax: Axes | None = None,
 ) -> tuple[Figure, Axes, Line2D]:
     n_k_points = list[float]()
     bond_lengths = list[float]()
     for calculator in calculators:
-        bond_lengths.append(
-            _get_unit_cell_displacements_from_calculator(calculator)[0],
-        )
-        n_k_points.append(calculator.get_kpoints(calculator.atoms)[0])
-    return _plot_bond_length_against_n_k_points(n_k_points, bond_lengths, ax=ax)
+        bond_lengths.append(_get_cell_lengths_from_calculator(calculator)[direction])
+        n_k_points.append(_get_n_k_points_from_calculator(calculator, direction))
+
+    return _plot_cell_length_against_n_k_points(
+        np.array(n_k_points),
+        np.array(bond_lengths),
+        ax=ax,
+    )
+
+
+def plot_energy_convergence(
+    calculators: list[Castep],
+    direction: int = 0,
+    *,
+    ax: Axes | None = None,
+) -> tuple[Figure, Axes, Line2D]:
+    n_k_points = list[float]()
+    energies = list[float]()
+    for calculator in calculators:
+        energies.append(cast(Atoms, calculator.atoms).get_potential_energy())  # type: ignore inkown
+        n_k_points.append(_get_n_k_points_from_calculator(calculator, direction))
+
+    return _plot_energy_against_n_k_points(
+        np.array(n_k_points),
+        np.array(energies),
+        ax=ax,
+    )

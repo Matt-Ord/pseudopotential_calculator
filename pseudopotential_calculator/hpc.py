@@ -20,7 +20,6 @@ if TYPE_CHECKING:
     from ase.calculators.castep import Castep
 
 
-@cache
 def _get_hpc_account() -> str:
     try:
         return os.environ["HPC_ACCOUNT"]
@@ -28,11 +27,31 @@ def _get_hpc_account() -> str:
         return input("HPC Account: ")
 
 
+@cache
+def _get_default_hpc_account() -> str:
+    return _get_hpc_account()
+
+
+def _get_hpc_username() -> str:
+    try:
+        return os.environ["HPC_USERNAME"]
+    except KeyError:
+        return input("Username: ")
+
+
+def _get_hpc_workspace_directory() -> PosixPath:
+    try:
+        return PosixPath(os.environ["HPC_WORKSPACE"])
+    except KeyError:
+        username = _get_hpc_username()
+        return PosixPath(f"/rds/user/{username}/hpc-work")
+
+
 @dataclass
 class HPCTaskConfig:
     """Configuration for a HPC task."""
 
-    account: str = field(default_factory=_get_hpc_account)
+    account: str = field(default_factory=_get_default_hpc_account)
     partition: str = "icelake-himem"
     n_nodes: int = field(default=1, kw_only=True)
     n_tasks: int = field(default=72, kw_only=True)
@@ -124,7 +143,7 @@ def _get_submit_all_script(
     directories = [
         get_calculator_directory(calculation) for calculation in calculations
     ]
-    directories = [d.relative_to(directory) for d in directories]
+    directories = [d.relative_to(directory.absolute()) for d in directories]
     return _get_submit_all_script_for_directories(directories)
 
 
@@ -150,21 +169,6 @@ def prepare_submit_all_script(calculations: list[Castep], directory: Path) -> No
     _try_grant_execute_permissions_to_file(file_path)
 
 
-def _get_ssh_username() -> str:
-    try:
-        return os.environ["HPC_USERNAME"]
-    except KeyError:
-        return input("Username: ")
-
-
-def _get_hpc_workspace_directory() -> PosixPath:
-    try:
-        return PosixPath(os.environ["HPC_WORKSPACE"])
-    except KeyError:
-        username = _get_ssh_username()
-        return PosixPath(f"/rds/user/{username}/hpc-work")
-
-
 def _get_relative_hpc_path(remote_folder: PosixPath) -> PosixPath:
     workspace_folder = _get_hpc_workspace_directory()
     return workspace_folder / remote_folder
@@ -172,7 +176,7 @@ def _get_relative_hpc_path(remote_folder: PosixPath) -> PosixPath:
 
 def copy_files_to_hpc(local_folder: Path, remote_folder: PosixPath) -> None:
     """Make use of the scp command to copy files from local to remote."""
-    username = _get_ssh_username()
+    username = _get_hpc_username()
 
     remote_folder_absolute = _get_relative_hpc_path(remote_folder)
     command = [
@@ -191,7 +195,7 @@ def copy_files_to_hpc(local_folder: Path, remote_folder: PosixPath) -> None:
 
 def copy_files_from_hpc(local_folder: Path, remote_folder: PosixPath) -> None:
     """Make use of the scp command to copy files from local to remote."""
-    username = _get_ssh_username()
+    username = _get_hpc_username()
 
     remote_folder_absolute = _get_relative_hpc_path(remote_folder)
     command = [
