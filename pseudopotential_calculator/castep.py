@@ -167,9 +167,9 @@ def load_all_calculators(directory: Path) -> list[Castep]:
             warnings.warn(f".err file in {root}, skipping", stacklevel=1)
             continue
 
-        root_directory = Path(root)
         for file in files:
-            if Path(file).suffix == ".castep":
+            if file.endswith(".castep"):
+                root_directory = Path(root)
                 config = CastepConfig(root_directory, file.removesuffix(".castep"))
                 out.append(load_calculator(config))
 
