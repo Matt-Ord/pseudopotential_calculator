@@ -44,7 +44,7 @@ def _get_hpc_workspace_directory() -> PosixPath:
         return PosixPath(os.environ["HPC_WORKSPACE"])
     except KeyError:
         username = _get_hpc_username()
-        return PosixPath(f"/rds/user/{username}/hpc-work")
+        return PosixPath(f"/home/{username}/rds/hpc-work")
 
 
 @dataclass
