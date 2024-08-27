@@ -4,10 +4,16 @@
 
 This package also contains functions to upload files to the HPC, and submit jobs remotely.
 
-By default, the username must be provided each time you log on, however
-by setting the HPC_USERNAME environment variable this can be skipped.
+The behavior of these functions can be configured using environment variables
 
-If using VSCODE, place this in your .vscode/launch.json to automatically set the HPC_ACCOUNT variable
+- `HPC_ACCOUNT`: The account used to submit jobs on the HPC
+- `HPC_USERNAME` : The user used to sign in to the HPC
+- `HPC_WORKSPACE` : The workspace used to upload files, the default being `/rds/user/{HPC_USERNAME}/hpc-work`
+
+By default, you will be promted each time these variables are
+required, but by setting the environment variable this can be skipped.
+
+If using VSCODE, place this in your .vscode/launch.json to automatically set the `HPC_ACCOUNT` and `HPC_USERNAME` variable
 
 ```json
 {
@@ -19,16 +25,14 @@ If using VSCODE, place this in your .vscode/launch.json to automatically set the
       "request": "launch",
       "program": "${file}",
       "env": {
-        "HPC_ACCOUNT": "YOUR_USERNAME"
+        "HPC_USERNAME": "YOUR_USERNAME",
+        "HPC_ACCOUNT": "YOUR_ACCOUNT"
       },
       "console": "integratedTerminal"
     }
   ]
 }
 ```
-
-The package also supports custom HPC workspace directories, which can be modified by setting
-the HPC_WORKSPACE variable. This defaults to `/rds/user/{HPC_USERNAME}/hpc-work`.
 
 It is also recommended that you setup ssh keys, in order to skip the password prompt.
 

@@ -1,10 +1,19 @@
-from dataclasses import dataclass, field
-from typing import Self
+from __future__ import annotations
 
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any, Self, cast, overload
+
+import numpy as np
 from ase import Atoms
-from ase.calculators.castep import Castep
 
 from pseudopotential_calculator.castep import CastepConfig, get_default_calculator
+from pseudopotential_calculator.util import get_figure
+
+if TYPE_CHECKING:
+    from ase.calculators.castep import Castep
+    from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
+    from matplotlib.lines import Line2D
 
 
 @dataclass
@@ -39,3 +48,108 @@ def get_bulk_optimization_calculator(
     # Temporary fix for bug in ase
     atoms.calc = calculation
     return calculation
+
+
+def _plot_cell_length_against_n_k_points(
+    n_k_points: np.ndarray[Any, np.dtype[np.float64]],
+    bond_lengths: np.ndarray[Any, np.dtype[np.float64]],
+    *,
+    ax: Axes | None = None,
+) -> tuple[Figure, Axes, Line2D]:
+    fig, ax = get_figure(ax)
+
+    args = np.argsort(n_k_points)
+    (line,) = ax.plot(n_k_points[args], bond_lengths[args])  # type: ignore library
+    ax.set_xlabel("number of k-points")  # type: ignore library
+    ax.set_ylabel(r"Cell Length / $\AA$")  # type: ignore library
+    ax.set_title("Plot of cell length vs number of k-points")  # type: ignore library
+    return fig, ax, line
+
+
+def _plot_energy_against_n_k_points(
+    n_k_points: np.ndarray[Any, np.dtype[np.float64]],
+    energy: np.ndarray[Any, np.dtype[np.float64]],
+    *,
+    ax: Axes | None = None,
+) -> tuple[Figure, Axes, Line2D]:
+    fig, ax = get_figure(ax)
+
+    args = np.argsort(n_k_points)
+    (line,) = ax.plot(n_k_points[args], energy[args])  # type: ignore library
+    ax.set_xlabel("number of k-points")  # type: ignore library
+    ax.set_ylabel("Energy / eV")  # type: ignore library
+    ax.set_title("Plot of energy vs number of k-points")  # type: ignore library
+    return fig, ax, line
+
+
+def _get_cell_lengths_from_calculator(
+    calculator: Castep,
+) -> tuple[float, ...]:
+    return cast(Atoms, calculator.atoms).get_cell_lengths_and_angles()[0:3]  # type: ignore unknown
+
+
+@overload
+def _get_n_k_points_from_calculator(
+    calculator: Castep,
+    direction: None = None,
+) -> tuple[int, ...]:
+    ...
+
+
+@overload
+def _get_n_k_points_from_calculator(
+    calculator: Castep,
+    direction: int,
+) -> int:
+    ...
+
+
+def _get_n_k_points_from_calculator(
+    calculator: Castep,
+    direction: int | None = None,
+) -> tuple[int, ...] | int:
+    kpoint_mp_grid = cast(
+        tuple[int, ...],
+        calculator.cell.kpoint_mp_grid.raw_value,  # type: ignore unkown
+    )
+    if direction is None:
+        return kpoint_mp_grid
+    return kpoint_mp_grid[direction]
+
+
+def plot_cell_length_convergence(
+    calculators: list[Castep],
+    direction: int = 0,
+    *,
+    ax: Axes | None = None,
+) -> tuple[Figure, Axes, Line2D]:
+    n_k_points = list[float]()
+    bond_lengths = list[float]()
+    for calculator in calculators:
+        bond_lengths.append(_get_cell_lengths_from_calculator(calculator)[direction])
+        n_k_points.append(_get_n_k_points_from_calculator(calculator, direction))
+
+    return _plot_cell_length_against_n_k_points(
+        np.array(n_k_points),
+        np.array(bond_lengths),
+        ax=ax,
+    )
+
+
+def plot_energy_convergence(
+    calculators: list[Castep],
+    direction: int = 0,
+    *,
+    ax: Axes | None = None,
+) -> tuple[Figure, Axes, Line2D]:
+    n_k_points = list[float]()
+    energies = list[float]()
+    for calculator in calculators:
+        energies.append(cast(Atoms, calculator.atoms).get_potential_energy())  # type: ignore inkown
+        n_k_points.append(_get_n_k_points_from_calculator(calculator, direction))
+
+    return _plot_energy_against_n_k_points(
+        np.array(n_k_points),
+        np.array(energies),
+        ax=ax,
+    )
