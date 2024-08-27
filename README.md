@@ -79,11 +79,13 @@ ls -al
 chmod u+x filename
 # Remove all files in data directory
 rm -r data
+# make a directory at data/copper/bulk
+mkdir -r data/copper/bulk
 ```
 
-To upload files to the HPC, the scp command should be used inide the local terminal
+To upload files to the HPC, the scp command should be used inside the local terminal
 
 ```shell
 # Note: -r copies all files recursively
-scp -r ./local_dir username@login.hpc.cam.ac.uk:target_dir
+scp -r ./local_dir/ username@login.hpc.cam.ac.uk:target_dir
 ```
