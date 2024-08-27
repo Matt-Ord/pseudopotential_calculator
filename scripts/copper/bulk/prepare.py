@@ -1,5 +1,6 @@
 from pathlib import Path, PosixPath
 
+from ase import Atoms
 from ase.build import bulk  # type: ignore bad library
 
 from pseudopotential_calculator.calculations.bulk import (
@@ -14,21 +15,43 @@ from pseudopotential_calculator.hpc import (
 )
 from pseudopotential_calculator.util import prepare_clean_directory
 
-if __name__ == "__main__":
-    bulk_copper = bulk("Cu", "fcc", 3.8)  #
-    data_path = Path("data/copper/bulk")
 
-    prepare_clean_directory(data_path)
-
+def _prepare_k_points_convergence(atom: Atoms) -> None:
+    data_path = Path("data/copper/bulk/k_points")
     calculators = list[Castep]()
+    prepare_clean_directory(data_path)
 
     for n_k_points in range(1, 11):
         config = CastepConfig(data_path / f"bulk_{n_k_points}", "bulk")
         params = BulkOptimizationParams(n_k_points=n_k_points)
-        calculator = get_bulk_optimization_calculator(bulk_copper, params, config)
+        calculator = get_bulk_optimization_calculator(atom, params, config)
         prepare_calculator_with_submit_script(calculator)
 
         calculators.append(calculator)
 
     prepare_submit_all_script(calculators, data_path)
-    copy_files_to_hpc(data_path, PosixPath("copper/bulk"))
+    copy_files_to_hpc(data_path, PosixPath("data/copper/bulk/k_points"))
+
+
+def _prepare_cutoff_energy_convergence(atom: Atoms) -> None:
+    data_path = Path("data/copper/bulk/cutoff_energy")
+    calculators = list[Castep]()
+    prepare_clean_directory(data_path)
+
+    for cutoff_energy in range(300, 750, 50):
+        config = CastepConfig(data_path / f"bulk_{cutoff_energy}", "bulk")
+        params = BulkOptimizationParams(n_k_points=11, cut_off_energy=cutoff_energy)
+        calculator = get_bulk_optimization_calculator(atom, params, config)
+        prepare_calculator_with_submit_script(calculator)
+
+        calculators.append(calculator)
+
+    prepare_submit_all_script(calculators, data_path)
+    copy_files_to_hpc(data_path, PosixPath("data/copper/bulk/cutoff_energy"))
+
+
+if __name__ == "__main__":
+    bulk_copper = bulk("Cu", "fcc", 3.8)
+
+    _prepare_k_points_convergence(bulk_copper)
+    _prepare_cutoff_energy_convergence(bulk_copper)

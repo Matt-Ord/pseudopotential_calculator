@@ -44,7 +44,7 @@ def _get_hpc_workspace_directory() -> PosixPath:
         return PosixPath(os.environ["HPC_WORKSPACE"])
     except KeyError:
         username = _get_hpc_username()
-        return PosixPath(f"/rds/user/{username}/hpc-work")
+        return PosixPath(f"/home/{username}/rds/hpc-work")
 
 
 @dataclass
@@ -182,7 +182,7 @@ def copy_files_to_hpc(local_folder: Path, remote_folder: PosixPath) -> None:
     command = [
         "scp",
         "-r",
-        f"{local_folder.absolute()}",
+        f"{local_folder.absolute()}/",
         f"{username}@login.hpc.cam.ac.uk:{remote_folder_absolute.as_posix()}",
     ]
     subprocess.run(
