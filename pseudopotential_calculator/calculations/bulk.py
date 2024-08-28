@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Self, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, Self, cast, overload
 
 import numpy as np
 from ase import Atoms
@@ -22,7 +22,7 @@ class BulkOptimizationParams:
 
     n_k_points: int = field(default=1, kw_only=True)
     cut_off_energy: float = field(default=340, kw_only=True)
-    xc_functional: str = field(default="PBE", kw_only=True)
+    xc_functional: Literal["PBE", "LDA", "WC"] = field(default="PBE", kw_only=True)
 
     @property
     def kpoint_mp_grid(self: Self) -> str:
@@ -60,6 +60,8 @@ def _plot_cell_length_against_n_k_points(
 
     args = np.argsort(n_k_points)
     (line,) = ax.plot(n_k_points[args], bond_lengths[args])  # type: ignore library
+    print(n_k_points[args])
+    print(bond_lengths[args])
     ax.set_xlabel("number of k-points")  # type: ignore library
     ax.set_ylabel(r"Cell Length / $\AA$")  # type: ignore library
     ax.set_title("Plot of cell length vs number of k-points")  # type: ignore library
@@ -76,6 +78,8 @@ def _plot_energy_against_n_k_points(
 
     args = np.argsort(n_k_points)
     (line,) = ax.plot(n_k_points[args], energy[args])  # type: ignore library
+    print(n_k_points[args])
+    print(energy[args])
     ax.set_xlabel("number of k-points")  # type: ignore library
     ax.set_ylabel("Energy / eV")  # type: ignore library
     ax.set_title("Plot of energy vs number of k-points")  # type: ignore library
@@ -127,7 +131,6 @@ def plot_cell_length_against_n_k_points(
     bond_lengths = list[float]()
     for calculator in calculators:
         bond_lengths.append(_get_cell_lengths_from_calculator(calculator)[direction])
-        print(_get_cell_lengths_from_calculator(calculator)[direction])
         n_k_points.append(_get_n_k_points_from_calculator(calculator, direction))
 
     return _plot_cell_length_against_n_k_points(
@@ -190,11 +193,55 @@ def plot_energy_against_cutoff_energy(
     energies = list[float]()
     for calculator in calculators:
         energies.append(cast(Atoms, calculator.atoms).get_potential_energy())  # type: ignore inkown
-        print(cast(Atoms, calculator.atoms).get_potential_energy())
         cutoff_energy.append(_get_cutoff_energy_from_calculator(calculator))
 
     return _plot_energy_against_cutoff_energy(
         np.array(cutoff_energy),
         np.array(energies),
+        ax=ax,
+    )
+
+
+
+def _plot_cell_length_against_cutoff_energy(
+    cutoff_energy: np.ndarray[Any, np.dtype[np.float64]],
+    bond_lengths: np.ndarray[Any, np.dtype[np.float64]],
+    *,
+    ax: Axes | None = None,
+) -> tuple[Figure, Axes, Line2D]:
+    fig, ax = get_figure(ax)
+
+    args = np.argsort(cutoff_energy)
+    line = ax.plot(cutoff_energy[args], bond_lengths[args])[
+        0
+    ]  # Access the first Line2D object
+
+    print(cutoff_energy[args])
+    print(bond_lengths[args])
+
+    ax.set_xlabel("cutoff energy")  # type: ignore library
+    ax.set_ylabel(r"Cell Length / $\AA$")  # type: ignore library
+    ax.set_title("Plot of cell length vs cutoff energy")  # type: ignore library
+
+    return fig, ax, line
+
+
+
+
+
+def plot_cell_length_against_cutoff_energy(
+    calculators: list[Castep],
+    *,
+    ax: Axes | None = None,
+) -> tuple[Figure, Axes, Line2D]:
+    cutoff_energy = list[float]()
+    cell_length = list[float]()
+    for calculator in calculators:
+        cell_length.append(_get_cell_lengths_from_calculator(calculator))  # type: ignore inkown
+        cutoff_energy.append(_get_cutoff_energy_from_calculator(calculator))
+
+    return _plot_cell_length_against_cutoff_energy(
+        np.array(cutoff_energy),
+        np.array(cell_length),
         ax=ax,
     )
