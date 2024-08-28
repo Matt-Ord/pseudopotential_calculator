@@ -165,15 +165,15 @@ def _get_cutoff_energy_from_calculator(
 
 
 def _plot_energy_against_cutoff_energy(
-    n_k_points: np.ndarray[Any, np.dtype[np.float64]],
+    cutoff_energy: np.ndarray[Any, np.dtype[np.float64]],
     energy: np.ndarray[Any, np.dtype[np.float64]],
     *,
     ax: Axes | None = None,
 ) -> tuple[Figure, Axes, Line2D]:
     fig, ax = get_figure(ax)
 
-    args = np.argsort(n_k_points)
-    (line,) = ax.plot(n_k_points[args], energy[args])  # type: ignore library
+    args = np.argsort(cutoff_energy)
+    (line,) = ax.plot(cutoff_energy[args], energy[args])  # type: ignore library
     ax.set_xlabel("Cuttoff energy /eV")  # type: ignore library
     ax.set_ylabel("Energy / eV")  # type: ignore library
     ax.set_title("Plot of energy vs cutoff energy")  # type: ignore library

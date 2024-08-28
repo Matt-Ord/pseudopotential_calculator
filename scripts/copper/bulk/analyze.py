@@ -28,7 +28,8 @@ if __name__ == "__main__":
 
     calculators = load_all_calculators(data_path)
 
-    fig, ax, _ = plot_energy_against_cutoff_energy(calculators)
+    fig, _, _ = plot_energy_against_cutoff_energy(calculators)
     fig.tight_layout()
     fig.show()
+
     input()

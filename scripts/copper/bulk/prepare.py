@@ -1,4 +1,4 @@
-from pathlib import PosixPath
+from pathlib import Path, PosixPath
 
 from ase import Atoms
 from ase.build import bulk  # type: ignore bad library
@@ -16,7 +16,7 @@ from pseudopotential_calculator.hpc import (
 from pseudopotential_calculator.util import prepare_clean_directory
 
 
-def _prepare_k_points_convergence(atom: Atoms, data_path: PosixPath) -> None:
+def _prepare_k_points_convergence(atom: Atoms, data_path: Path) -> None:
     calculators = list[Castep]()
     prepare_clean_directory(data_path)
 
@@ -29,10 +29,10 @@ def _prepare_k_points_convergence(atom: Atoms, data_path: PosixPath) -> None:
         calculators.append(calculator)
 
     prepare_submit_all_script(calculators, data_path)
-    copy_files_to_hpc(data_path, data_path)
+    copy_files_to_hpc(data_path, PosixPath(data_path.as_posix()))
 
 
-def _prepare_cutoff_energy_convergence(atom: Atoms, data_path: PosixPath) -> None:
+def _prepare_cutoff_energy_convergence(atom: Atoms, data_path: Path) -> None:
     calculators = list[Castep]()
     prepare_clean_directory(data_path)
 
@@ -45,11 +45,11 @@ def _prepare_cutoff_energy_convergence(atom: Atoms, data_path: PosixPath) -> Non
         calculators.append(calculator)
 
     prepare_submit_all_script(calculators, data_path)
-    copy_files_to_hpc(data_path, data_path)
+    copy_files_to_hpc(data_path, PosixPath(data_path.as_posix()))
 
 
-K_POINTS_PATH = PosixPath("data/copper/bulk/k_points")
-ENERGY_CUTOFF_PATH = PosixPath("data/copper/bulk/cutoff_energy")
+K_POINTS_PATH = Path("data/copper/bulk/k_points")
+ENERGY_CUTOFF_PATH = Path("data/copper/bulk/cutoff_energy")
 
 if __name__ == "__main__":
     bulk_copper = bulk("Cu", "fcc", 3.8)
