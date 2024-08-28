@@ -135,6 +135,7 @@ def get_default_calculator(
     calculator._set_atoms = True  # type: ignore only way # noqa: SLF001
     calculator.param.num_dump_cycles = 0
     calculator.param.reuse = True
+    calculator.param.symmetry_generate = True
 
     return calculator
 
