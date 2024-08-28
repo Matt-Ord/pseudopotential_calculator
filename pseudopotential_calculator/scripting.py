@@ -8,17 +8,14 @@ from pseudopotential_calculator.hpc import copy_files_from_hpc
 def prompt_for_decision(question: str, default: Literal["y", "n"] = "y") -> bool:
     valid_responses = {"y": True, "n": False, "yes": True, "no": False}
 
-    if default not in valid_responses:
+    if default not in ["y", "n"]:
         msg = f"Invalid default answer: '{default}'"
-        raise ValueError(msg)
+        raise TypeError(msg)
 
-    prompt_map = {
-        "y": " [Y/n]: ",
-        "n": " [y/N]: ",
-    }
+    prompt_msg = {"y": " [Y/n]: ", "n": " [y/N]: "}[default]
 
     while True:
-        response = input(f"{question} {prompt_map[default]}").strip().lower()
+        response = input(f"{question} {prompt_msg}").strip().lower()
 
         if response == "":
             return valid_responses[default]
