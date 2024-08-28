@@ -58,8 +58,12 @@ may be useful
 ```shell
 # To see all queue
 squeue
-# To see the queue for user username
+# To see the queue for user `username`
 squeue -u username
+# To see the predicted start time
+# NOTE: this does not take into account jobs ending early,
+# or other users jumping the queue
+squeue -u username --start
 # To cancel a job
 scancel job_id
 # To view your balance

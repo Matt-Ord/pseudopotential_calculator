@@ -110,14 +110,14 @@ def _get_n_k_points_from_calculator(
 ) -> tuple[int, ...] | int:
     kpoint_mp_grid = cast(
         tuple[int, ...],
-        calculator.cell.kpoint_mp_grid.raw_value,  # type: ignore unkown
+        calculator.cell.kpoint_mp_grid.raw_value,  # type: ignore unknown
     )
     if direction is None:
         return kpoint_mp_grid
     return kpoint_mp_grid[direction]
 
 
-def plot_cell_length_convergence(
+def plot_cell_length_against_n_k_points(
     calculators: list[Castep],
     direction: int = 0,
     *,
@@ -136,7 +136,7 @@ def plot_cell_length_convergence(
     )
 
 
-def plot_energy_convergence(
+def plot_energy_against_n_k_points(
     calculators: list[Castep],
     direction: int = 0,
     *,
@@ -150,6 +150,49 @@ def plot_energy_convergence(
 
     return _plot_energy_against_n_k_points(
         np.array(n_k_points),
+        np.array(energies),
+        ax=ax,
+    )
+
+
+def _get_cutoff_energy_from_calculator(
+    calculator: Castep,
+) -> float:
+    return cast(
+        float,
+        calculator.param.cut_off_energy.raw_value[0],  # type: ignore unknown
+    )
+
+
+def _plot_energy_against_cutoff_energy(
+    cutoff_energy: np.ndarray[Any, np.dtype[np.float64]],
+    energy: np.ndarray[Any, np.dtype[np.float64]],
+    *,
+    ax: Axes | None = None,
+) -> tuple[Figure, Axes, Line2D]:
+    fig, ax = get_figure(ax)
+
+    args = np.argsort(cutoff_energy)
+    (line,) = ax.plot(cutoff_energy[args], energy[args])  # type: ignore library
+    ax.set_xlabel("Cuttoff energy /eV")  # type: ignore library
+    ax.set_ylabel("Energy / eV")  # type: ignore library
+    ax.set_title("Plot of energy vs cutoff energy")  # type: ignore library
+    return fig, ax, line
+
+
+def plot_energy_against_cutoff_energy(
+    calculators: list[Castep],
+    *,
+    ax: Axes | None = None,
+) -> tuple[Figure, Axes, Line2D]:
+    cutoff_energy = list[float]()
+    energies = list[float]()
+    for calculator in calculators:
+        energies.append(cast(Atoms, calculator.atoms).get_potential_energy())  # type: ignore inkown
+        cutoff_energy.append(_get_cutoff_energy_from_calculator(calculator))
+
+    return _plot_energy_against_cutoff_energy(
+        np.array(cutoff_energy),
         np.array(energies),
         ax=ax,
     )
