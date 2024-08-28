@@ -127,6 +127,7 @@ def plot_cell_length_against_n_k_points(
     bond_lengths = list[float]()
     for calculator in calculators:
         bond_lengths.append(_get_cell_lengths_from_calculator(calculator)[direction])
+        print(_get_cell_lengths_from_calculator(calculator)[direction])
         n_k_points.append(_get_n_k_points_from_calculator(calculator, direction))
 
     return _plot_cell_length_against_n_k_points(
@@ -189,6 +190,7 @@ def plot_energy_against_cutoff_energy(
     energies = list[float]()
     for calculator in calculators:
         energies.append(cast(Atoms, calculator.atoms).get_potential_energy())  # type: ignore inkown
+        print(cast(Atoms, calculator.atoms).get_potential_energy())
         cutoff_energy.append(_get_cutoff_energy_from_calculator(calculator))
 
     return _plot_energy_against_cutoff_energy(

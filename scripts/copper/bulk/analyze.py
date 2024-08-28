@@ -18,11 +18,15 @@ if __name__ == "__main__":
     calculators = load_all_calculators(data_path)
     fig, _, _ = plot_cell_length_against_n_k_points(calculators)
     fig.show()
+    fig.savefig("cell_length_against_n_k_points")
 
     fig, _, _ = plot_energy_against_n_k_points(calculators)
     fig.tight_layout()
     fig.show()
 
+    fig.savefig("energy_against_n_k_points")
+
+    fig, _, _ = plot_energy_against_n_k_points(calculators)
     data_path = ENERGY_CUTOFF_PATH
     maybe_copy_files_from_hpc(data_path, ENERGY_CUTOFF_PATH)
 
@@ -32,4 +36,5 @@ if __name__ == "__main__":
     fig.tight_layout()
     fig.show()
 
+    fig.savefig("energy_against_cutoff_energy")
     input()
