@@ -68,9 +68,9 @@ def _prepare_cutoff_energy_convergence(atom: Atoms, data_path: Path) -> None:
     copy_files_to_hpc(data_path, PosixPath(data_path.as_posix()))
 
 
-K_POINTS_PATH = Path("data_min/copper/bulk/k_points")
-K_POINTS_PATH_WC = Path("data_min/copper/bulk/k_points_WC")
-ENERGY_CUTOFF_PATH = Path("data_min/copper/bulk/cutoff_energy")
+K_POINTS_PATH = Path("data/copper/bulk/k_points")
+K_POINTS_PATH_WC = Path("data/copper/bulk/k_points_WC")
+ENERGY_CUTOFF_PATH = Path("data/copper/bulk/cutoff_energy")
 
 if __name__ == "__main__":
     bulk_copper = bulk("Cu", "fcc", 3.8)
