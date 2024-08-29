@@ -44,7 +44,7 @@ chmod 600 ~/.ssh/id_ed25519
 ssh-copy-id -i ~/.ssh/id_ed25519.pub username@login.hpc.cam.ac.uk
 ```
 
-# Directly interacting with the HPC
+## Directly interacting with the HPC
 
 It is also sometimes useful to interact directly with the HPC in the CLI using ssh
 
