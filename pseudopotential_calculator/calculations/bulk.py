@@ -6,7 +6,11 @@ from typing import TYPE_CHECKING, Any, Literal, Self, cast, overload
 import numpy as np
 from ase import Atoms
 
-from pseudopotential_calculator.castep import CastepConfig, get_default_calculator
+from pseudopotential_calculator.castep import (
+    CastepConfig,
+    get_calculator_atom,
+    get_default_calculator,
+)
 from pseudopotential_calculator.util import get_figure
 
 if TYPE_CHECKING:
@@ -108,7 +112,6 @@ def _plot_cell_length_against_n_k_points(
 
     args = np.argsort(n_k_points)
     (line,) = ax.plot(n_k_points[args], bond_lengths[args])  # type: ignore library
-    print(n_k_points[args])
     print(bond_lengths[args])
     ax.set_xlabel("number of k-points")  # type: ignore library
     ax.set_ylabel(r"Cell Length / $\AA$")  # type: ignore library
@@ -162,7 +165,6 @@ def _plot_cell_length_against_cutoff_energy(
     (line,) = ax.plot(cutoff_energy[args], bond_lengths[args])  # type: ignore
 
     print(cutoff_energy[args])
-    print(bond_lengths[args])
 
     ax.set_xlabel("cutoff energy")  # type: ignore library
     ax.set_ylabel(r"Cell Length / $\AA$")  # type: ignore library
@@ -217,7 +219,9 @@ def plot_energy_against_cutoff_energy(
     cutoff_energy = list[float]()
     energies = list[float]()
     for calculator in calculators:
-        energies.append(cast(Atoms, calculator.atoms).get_potential_energy())  # type: ignore inkown
+        energies.append(
+            cast(Atoms, get_calculator_atom(calculator)).get_potential_energy()
+        )  # type: ignore inkown
         cutoff_energy.append(_get_cutoff_energy_from_calculator(calculator))
 
     return _plot_energy_against_cutoff_energy(

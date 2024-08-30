@@ -37,9 +37,9 @@ if __name__ == "__main__":
     calculators = load_all_calculators(data_path)
 
     fig, _, _ = plot_energy_against_cutoff_energy(calculators)
+
     fig.tight_layout()
     fig.show()
-
     fig.savefig(SAVE_DIR / "cell_length_against_cutoff_energy")  # type: ignore
 
     fig, ax, _ = plot_cell_length_against_cutoff_energy(calculators)

@@ -2,9 +2,9 @@ from pathlib import Path, PosixPath
 
 from ase import Atoms
 from ase.build import (
+    bulk,  # type: ignore bad library
     surface,  # type: ignore  # noqa: PGH003
 )
-from ase.io import read  # type: ignore  # noqa: PGH003
 
 from pseudopotential_calculator.calculations.slab import (
     SlabOptimizationParams,
@@ -41,6 +41,6 @@ def _prepare_vaccum_layer_convergence(atom: Atoms, data_path: Path) -> None:
 VACUUM_LAYER_PATH = Path("data/copper/slab/vaccum_layer")  # type: ignore
 
 if __name__ == "__main__":
-    bulk_copper = read("Cu_test.poscar", format="vasp")
+    bulk_copper = bulk("Cu", "fcc", 3.8)
     # write the model file to be viewed
     _prepare_vaccum_layer_convergence(bulk_copper, VACUUM_LAYER_PATH)  # type: ignore
