@@ -1,13 +1,16 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, NamedTuple, cast
 
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from matplotlib.lines import Line2D
 
 
 def _rename_calculation_folder(directory: Path) -> None:
@@ -45,3 +48,21 @@ def get_figure(ax: Axes | None) -> tuple[Figure, Axes]:
         fig = plt.figure()  # type: ignore plt.figure Unknown type
         ax.set_figure(fig)
     return fig, ax
+
+
+def generic_plot(
+    data: NamedTuple,
+    *,
+    ax: Axes | None = None,
+) -> tuple[Figure, Axes, Line2D]:
+    fig, ax = get_figure(ax)
+    x, y = data
+    args = np.argsort(x)
+    (line,) = ax.plot(x[args], y[args])  # type: ignore bad library
+
+    ax.set_xlabel(data._fields[0])  # type: ignore bad library
+
+    ax.set_ylabel(data._fields[1])  # type: ignore bad library
+    ax.set_title(f"{data._fields[1]} vs {data._fields[0]}")  # type: ignore bad library
+
+    return fig, ax, line

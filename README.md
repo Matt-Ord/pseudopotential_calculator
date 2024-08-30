@@ -84,7 +84,7 @@ chmod u+x filename
 # Remove all files in data directory
 rm -r data
 # make a directory at data/copper/bulk
-mkdir -r data/copper/bulk
+mkdir -p data/copper/bulk
 ```
 
 To upload files to the HPC, the scp command should be used inside the local terminal

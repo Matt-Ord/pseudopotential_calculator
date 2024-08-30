@@ -1,34 +1,31 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Self
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Self, cast
 
+from ase import Atoms
+from ase.build import (
+    surface,  # type: ignore  # noqa: PGH003
+)
 from ase.constraints import FixAtoms
 
+from pseudopotential_calculator.calculations.generic import OptimizationParamsBase
 from pseudopotential_calculator.castep import CastepConfig, get_default_calculator
 
 if TYPE_CHECKING:
-    from ase import Atoms
     from ase.calculators.castep import Castep
-
-    from pseudopotential_calculator.calculations.bulk import XCFunctional
 
 
 @dataclass
-class SlabOptimizationParams:
+class SlabOptimizationParams(OptimizationParamsBase):
     """Parameters of a slab calculation."""
-
-    n_k_points: int = field(default=1, kw_only=True)
-    cut_off_energy: float = field(default=600, kw_only=True)
-    xc_functional: XCFunctional = field(default="PBE", kw_only=True)
-    spin_polarized: bool = field(default=False, kw_only=True)
 
     @property
     def kpoint_mp_grid(self: Self) -> str:
         return f"{self.n_k_points} {self.n_k_points} {1}"
 
 
-def get_slab_optimization_calculator(
+def get_slab_vaccum_calculator(
     atoms: Atoms,
     parameters: SlabOptimizationParams,
     config: CastepConfig,
@@ -49,3 +46,14 @@ def get_slab_optimization_calculator(
     # Temporary fix for bug in ase
     atoms.calc = calculator
     return calculator
+
+
+def get_surface(
+    atom: Atoms,
+    slab_direction: tuple[int, int, int],
+    thickness: float,
+    vacuum: float,
+) -> Atoms:
+    # Call the surface function and cast the result to Atoms
+    slab = surface(atom, slab_direction, thickness, vacuum=vacuum)  # type: ignore bad library
+    return cast(Atoms, slab)

@@ -179,6 +179,7 @@ def copy_files_to_hpc(local_folder: Path, remote_folder: PosixPath) -> None:
     username = _get_hpc_username()
 
     remote_folder_absolute = _get_relative_hpc_path(remote_folder)
+
     command = [
         "scp",
         "-r",

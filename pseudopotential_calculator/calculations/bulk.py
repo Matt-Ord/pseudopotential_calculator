@@ -1,17 +1,18 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Literal, Self, cast, overload
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, Self, cast, overload
 
 import numpy as np
 from ase import Atoms
 
+from pseudopotential_calculator.calculations.generic import OptimizationParamsBase
 from pseudopotential_calculator.castep import (
     CastepConfig,
     get_calculator_atom,
     get_default_calculator,
 )
-from pseudopotential_calculator.util import get_figure
+from pseudopotential_calculator.util import generic_plot
 
 if TYPE_CHECKING:
     from ase.calculators.castep import Castep
@@ -23,13 +24,8 @@ XCFunctional = Literal["PBE", "LDA", "WC"]
 
 
 @dataclass
-class BulkOptimizationParams:
+class BulkOptimizationParams(OptimizationParamsBase):
     """Parameters of a bulk calculation."""
-
-    n_k_points: int = field(default=1, kw_only=True)
-    cut_off_energy: float = field(default=600, kw_only=True)
-    xc_functional: XCFunctional = field(default="PBE", kw_only=True)
-    spin_polarized: bool = field(default=False, kw_only=True)
 
     @property
     def kpoint_mp_grid(self: Self) -> str:
@@ -45,7 +41,7 @@ def get_bulk_optimization_calculator(
 
     calculator.param.xc_functional = parameters.xc_functional
     calculator.param.cut_off_energy = parameters.cut_off_energy
-    calculator.param.spin_polarized = "true" if parameters.spin_polarized else "false"
+    calculator.param.spin_polarized = parameters.spin_polarized
     calculator.cell.kpoint_mp_grid = parameters.kpoint_mp_grid
 
     # Prevent the bulk cell from rotating
@@ -102,77 +98,6 @@ def _get_cutoff_energy_from_calculator(
     )
 
 
-def _plot_cell_length_against_n_k_points(
-    n_k_points: np.ndarray[Any, np.dtype[np.float64]],
-    bond_lengths: np.ndarray[Any, np.dtype[np.float64]],
-    *,
-    ax: Axes | None = None,
-) -> tuple[Figure, Axes, Line2D]:
-    fig, ax = get_figure(ax)
-
-    args = np.argsort(n_k_points)
-    (line,) = ax.plot(n_k_points[args], bond_lengths[args])  # type: ignore library
-    print(bond_lengths[args])
-    ax.set_xlabel("number of k-points")  # type: ignore library
-    ax.set_ylabel(r"Cell Length / $\AA$")  # type: ignore library
-    ax.set_title("Plot of cell length vs number of k-points")  # type: ignore library
-    return fig, ax, line
-
-
-def _plot_energy_against_n_k_points(
-    n_k_points: np.ndarray[Any, np.dtype[np.float64]],
-    energy: np.ndarray[Any, np.dtype[np.float64]],
-    *,
-    ax: Axes | None = None,
-) -> tuple[Figure, Axes, Line2D]:
-    fig, ax = get_figure(ax)
-
-    args = np.argsort(n_k_points)
-    (line,) = ax.plot(n_k_points[args], energy[args])  # type: ignore library
-    print(n_k_points[args])
-    print(energy[args])
-    ax.set_xlabel("number of k-points")  # type: ignore library
-    ax.set_ylabel("Energy / eV")  # type: ignore library
-    ax.set_title("Plot of energy vs number of k-points")  # type: ignore library
-    return fig, ax, line
-
-
-def _plot_energy_against_cutoff_energy(
-    cutoff_energy: np.ndarray[Any, np.dtype[np.float64]],
-    energy: np.ndarray[Any, np.dtype[np.float64]],
-    *,
-    ax: Axes | None = None,
-) -> tuple[Figure, Axes, Line2D]:
-    fig, ax = get_figure(ax)
-
-    args = np.argsort(cutoff_energy)
-    (line,) = ax.plot(cutoff_energy[args], energy[args])  # type: ignore library
-    ax.set_xlabel("Cuttoff energy /eV")  # type: ignore library
-    ax.set_ylabel("Energy / eV")  # type: ignore library
-    ax.set_title("Plot of energy vs cutoff energy")  # type: ignore library
-    return fig, ax, line
-
-
-def _plot_cell_length_against_cutoff_energy(
-    cutoff_energy: np.ndarray[Any, np.dtype[np.float64]],
-    bond_lengths: np.ndarray[Any, np.dtype[np.float64]],
-    *,
-    ax: Axes | None = None,
-) -> tuple[Figure, Axes, Line2D]:
-    fig, ax = get_figure(ax)
-
-    args = np.argsort(cutoff_energy)
-    (line,) = ax.plot(cutoff_energy[args], bond_lengths[args])  # type: ignore
-
-    print(cutoff_energy[args])
-
-    ax.set_xlabel("cutoff energy")  # type: ignore library
-    ax.set_ylabel(r"Cell Length / $\AA$")  # type: ignore library
-    ax.set_title("Plot of cell length vs cutoff energy")  # type: ignore library
-
-    return fig, ax, line
-
-
 def plot_cell_length_against_n_k_points(
     calculators: list[Castep],
     direction: int = 0,
@@ -185,9 +110,13 @@ def plot_cell_length_against_n_k_points(
         bond_lengths.append(_get_cell_lengths_from_calculator(calculator)[direction])
         n_k_points.append(_get_n_k_points_from_calculator(calculator, direction))
 
-    return _plot_cell_length_against_n_k_points(
-        np.array(n_k_points),
-        np.array(bond_lengths),
+    class PlotTuple(NamedTuple):
+        n_k_points: np.ndarray[Any, np.dtype[np.float64]]
+        bond_lengths: np.ndarray[Any, np.dtype[np.float64]]
+
+    p = PlotTuple(np.array(n_k_points), np.array(bond_lengths))
+    return generic_plot(
+        p,
         ax=ax,
     )
 
@@ -204,9 +133,13 @@ def plot_energy_against_n_k_points(
         energies.append(cast(Atoms, calculator.atoms).get_potential_energy())  # type: ignore inkown
         n_k_points.append(_get_n_k_points_from_calculator(calculator, direction))
 
-    return _plot_energy_against_n_k_points(
-        np.array(n_k_points),
-        np.array(energies),
+    class PlotTuple(NamedTuple):
+        n_k_points: np.ndarray[Any, np.dtype[np.float64]]
+        energies: np.ndarray[Any, np.dtype[np.float64]]
+
+    p = PlotTuple(np.array(n_k_points), np.array(energies))
+    return generic_plot(
+        p,
         ax=ax,
     )
 
@@ -220,13 +153,17 @@ def plot_energy_against_cutoff_energy(
     energies = list[float]()
     for calculator in calculators:
         energies.append(
-            cast(Atoms, get_calculator_atom(calculator)).get_potential_energy()
+            cast(Atoms, get_calculator_atom(calculator)).get_potential_energy(),
         )  # type: ignore inkown
         cutoff_energy.append(_get_cutoff_energy_from_calculator(calculator))
 
-    return _plot_energy_against_cutoff_energy(
-        np.array(cutoff_energy),
-        np.array(energies),
+    class PlotTuple(NamedTuple):
+        cutoff_energy: np.ndarray[Any, np.dtype[np.float64]]
+        energies: np.ndarray[Any, np.dtype[np.float64]]
+
+    p = PlotTuple(np.array(cutoff_energy), np.array(energies))
+    return generic_plot(
+        p,
         ax=ax,
     )
 
@@ -242,8 +179,12 @@ def plot_cell_length_against_cutoff_energy(
         cell_length.append(_get_cell_lengths_from_calculator(calculator)[0])
         cutoff_energy.append(_get_cutoff_energy_from_calculator(calculator))
 
-    return _plot_cell_length_against_cutoff_energy(
-        np.array(cutoff_energy),
-        np.array(cell_length),
+    class PlotTuple(NamedTuple):
+        cutoff_energy: np.ndarray[Any, np.dtype[np.float64]]
+        cell_length: np.ndarray[Any, np.dtype[np.float64]]
+
+    p = PlotTuple(np.array(cutoff_energy), np.array(cell_length))
+    return generic_plot(
+        p,
         ax=ax,
     )

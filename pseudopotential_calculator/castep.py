@@ -30,7 +30,7 @@ def get_calculator_directory(calculator: Castep) -> Path:
     return Path(calculator._directory)  # type: ignore this is the only way # noqa: SLF001
 
 
-def get_calculator_atom(calculator: Castep) -> Atoms:
+def get_calculator_atom(calculator: Castep) -> Atoms | None:
     return calculator.atoms  # type: ignore this is the only way
 
 
