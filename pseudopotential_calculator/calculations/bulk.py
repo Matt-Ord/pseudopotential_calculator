@@ -19,6 +19,8 @@ if TYPE_CHECKING:
     from matplotlib.figure import Figure
     from matplotlib.lines import Line2D
 
+XCFunctional = Literal["PBE", "LDA", "WC"]
+
 
 @dataclass
 class BulkOptimizationParams:
@@ -26,7 +28,8 @@ class BulkOptimizationParams:
 
     n_k_points: int = field(default=1, kw_only=True)
     cut_off_energy: float = field(default=600, kw_only=True)
-    xc_functional: Literal["PBE", "LDA", "WC"] = field(default="PBE", kw_only=True)
+    xc_functional: XCFunctional = field(default="PBE", kw_only=True)
+    spin_polarized: bool = field(default=False, kw_only=True)
 
     @property
     def kpoint_mp_grid(self: Self) -> str:
@@ -38,24 +41,21 @@ def get_bulk_optimization_calculator(
     parameters: BulkOptimizationParams,
     config: CastepConfig,
 ) -> Castep:
-    calculation = get_default_calculator(config)
+    calculator = get_default_calculator(config)
 
-    calculation.param.xc_functional = parameters.xc_functional
-    calculation.param.cut_off_energy = parameters.cut_off_energy
-    calculation.param.spinpolarised = "true"
-    calculation.param.elec_energy_tol = 1.000000000000000e-06
-    calculation.param.geom_energy_tol = 1.000000000000000e-05
-    calculation.param.geom_disp_tol = 1.000000000000000e-03
-    calculation.cell.kpoint_mp_grid = parameters.kpoint_mp_grid
+    calculator.param.xc_functional = parameters.xc_functional
+    calculator.param.cut_off_energy = parameters.cut_off_energy
+    calculator.param.spin_polarized = "true" if parameters.spin_polarized else "false"
+    calculator.cell.kpoint_mp_grid = parameters.kpoint_mp_grid
 
     # Prevent the bulk cell from rotating
-    calculation.cell.cell_constraints = "1 1 1\n0 0 0"
-    calculation.task = "GeometryOptimization"
+    calculator.cell.cell_constraints = "1 1 1\n0 0 0"
+    calculator.task = "GeometryOptimization"
 
-    calculation.set_atoms(atoms)  # type: ignore unknown
+    calculator.set_atoms(atoms)  # type: ignore unknown
     # Temporary fix for bug in ase
-    atoms.calc = calculation
-    return calculation
+    atoms.calc = calculator
+    return calculator
 
 
 def _get_cell_lengths_from_calculator(

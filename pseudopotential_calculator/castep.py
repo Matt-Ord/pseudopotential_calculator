@@ -139,6 +139,9 @@ def get_default_calculator(
     calculator._set_atoms = True  # type: ignore only way # noqa: SLF001
     calculator.param.num_dump_cycles = 0
     calculator.param.reuse = True
+    calculator.param.elec_energy_tol = 1e-06
+    calculator.param.geom_energy_tol = 1e-05
+    calculator.param.geom_disp_tol = 1e-03
 
     return calculator
 

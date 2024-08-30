@@ -5,6 +5,7 @@ from ase.build import bulk  # type: ignore bad library
 
 from pseudopotential_calculator.calculations.bulk import (
     BulkOptimizationParams,
+    XCFunctional,
     get_bulk_optimization_calculator,
 )
 from pseudopotential_calculator.castep import Castep, CastepConfig
@@ -16,23 +17,13 @@ from pseudopotential_calculator.hpc import (
 from pseudopotential_calculator.util import prepare_clean_directory
 
 
-def _prepare_k_points_convergence(atom: Atoms, data_path: Path) -> None:
-    calculators = list[Castep]()
-    prepare_clean_directory(data_path)
-
-    for n_k_points in range(1, 11):
-        config = CastepConfig(data_path / f"bulk_{n_k_points}", "bulk")
-        params = BulkOptimizationParams(n_k_points=n_k_points)
-        calculator = get_bulk_optimization_calculator(atom, params, config)
-        prepare_calculator_with_submit_script(calculator)
-
-        calculators.append(calculator)
-
-    prepare_submit_all_script(calculators, data_path)
-    copy_files_to_hpc(data_path, PosixPath(data_path.as_posix()))
-
-
-def _prepare_k_points_convergence_WC(atom: Atoms, data_path: Path) -> None:  # noqa: N802
+def _prepare_k_points_convergence(
+    atom: Atoms,
+    data_path: Path,
+    *,
+    xc_functional: XCFunctional = "PBE",
+    spin_polarized: bool = False,
+) -> None:
     calculators = list[Castep]()
     prepare_clean_directory(data_path)
 
@@ -40,8 +31,8 @@ def _prepare_k_points_convergence_WC(atom: Atoms, data_path: Path) -> None:  # n
         config = CastepConfig(data_path / f"bulk_{n_k_points}", "bulk")
         params = BulkOptimizationParams(
             n_k_points=n_k_points,
-            cut_off_energy=600,
-            xc_functional="WC",
+            xc_functional=xc_functional,
+            spin_polarized=spin_polarized,
         )
         calculator = get_bulk_optimization_calculator(atom, params, config)
         prepare_calculator_with_submit_script(calculator)
@@ -68,13 +59,15 @@ def _prepare_cutoff_energy_convergence(atom: Atoms, data_path: Path) -> None:
     copy_files_to_hpc(data_path, PosixPath(data_path.as_posix()))
 
 
-K_POINTS_PATH = Path("data/copper/bulk/k_points")
+K_POINTS_PATH = Path("data/copper/bulk/k_points_PBE")
 K_POINTS_PATH_WC = Path("data/copper/bulk/k_points_WC")
+K_POINTS_PATH_SP = Path("data/copper/bulk/k_points_SP")
 ENERGY_CUTOFF_PATH = Path("data/copper/bulk/cutoff_energy")
 
 if __name__ == "__main__":
     bulk_copper = bulk("Cu", "fcc", 3.8)
 
-    _prepare_k_points_convergence_WC(bulk_copper, K_POINTS_PATH_WC)
+    _prepare_k_points_convergence(bulk_copper, K_POINTS_PATH_WC, xc_functional="WC")
+    _prepare_k_points_convergence(bulk_copper, K_POINTS_PATH, xc_functional="PBE")
+    _prepare_k_points_convergence(bulk_copper, K_POINTS_PATH_SP, spin_polarized=True)
     _prepare_cutoff_energy_convergence(bulk_copper, ENERGY_CUTOFF_PATH)
-    _prepare_k_points_convergence(bulk_copper, K_POINTS_PATH)
