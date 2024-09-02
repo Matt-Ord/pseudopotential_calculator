@@ -1,9 +1,10 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Self
 
 
 @dataclass
-class OptimizationParamsBase:
+class OptimizationParamsBase(ABC):
     """Base class for optimization parameters."""
 
     n_k_points: int = field(default=1, kw_only=True)
@@ -15,6 +16,6 @@ class OptimizationParamsBase:
     spin_polarized: bool = field(default=False, kw_only=True)
 
     @property
+    @abstractmethod
     def kpoint_mp_grid(self: Self) -> str:
-        error_message = "This method should be implemented by subclasses."
-        raise NotImplementedError(error_message)
+        """Method to return a string of k points to be implemented by subclasses."""

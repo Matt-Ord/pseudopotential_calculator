@@ -50,7 +50,7 @@ def get_figure(ax: Axes | None) -> tuple[Figure, Axes]:
     return fig, ax
 
 
-def generic_plot(
+def plot_data_comparison(
     data: NamedTuple,
     *,
     ax: Axes | None = None,
@@ -66,3 +66,11 @@ def generic_plot(
     ax.set_title(f"{data._fields[1]} vs {data._fields[0]}")  # type: ignore bad library
 
     return fig, ax, line
+
+
+def show_legend(ax: Axes) -> None:
+    ax.legend()  # type: ignore bad library
+
+
+def save_fig(fig: Figure, save_dir: Path) -> None:
+    fig.savefig(save_dir)  # type: ignore bad library

@@ -2,7 +2,7 @@ import os
 from pathlib import Path, PosixPath
 from typing import Literal
 
-from pseudopotential_calculator.hpc import copy_files_from_hpc
+from pseudopotential_calculator.hpc import copy_files_from_hpc, copy_files_to_hpc
 
 
 def prompt_for_decision(question: str, default: Literal["y", "n"] = "y") -> bool:
@@ -30,3 +30,11 @@ def maybe_copy_files_from_hpc(local_folder: Path, remote_folder: PosixPath) -> N
     if skip or not prompt_for_decision("Copy files from HPC"):
         return
     copy_files_from_hpc(local_folder, remote_folder)
+
+
+def maybe_copy_files_to_hpc(local_folder: Path, remote_folder: PosixPath) -> None:
+    """Make use of the scp command to copy files to local to remote."""
+    skip = os.environ.get("SKIP_UPLOAD", False)
+    if skip or not prompt_for_decision("Copy files to HPC"):
+        return
+    copy_files_to_hpc(local_folder, remote_folder)

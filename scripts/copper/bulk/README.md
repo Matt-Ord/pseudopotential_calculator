@@ -5,7 +5,7 @@ of atoms in the bulk. To do this we generate a single primitive cell
 of material with the correct bond angles and a reasonable initial guess
 for the bond lengths
 
-TODO: PLOT OF INITIAL CONDITION
+![initial arrangement.png](<figures/initial arrangement.png>)
 
 We then perform a CASTEP geometry optimization routine in order to
 find the true bond lengths of the material.
@@ -15,7 +15,8 @@ find the true bond lengths of the material.
 First we test for convergence against cutoff-energy. This parameter sets
 the highest energy in the basis used for the calculation.
 
-TODO: PLOT OF CONVERGENCE WITH CUTOFF ENERGY
+![energy_against_cutoff_energy.png](figures/energy_against_cutoff_energy.png)
+![cell_length_against_cutoff_energy.png](figures/cell_length_against_cutoff_energy.png)
 
 We find convergence at around $600 eV$, although with the default
 pseudopotential and `k_points` of $10 \times 10 \times 10$ we are
@@ -50,7 +51,8 @@ For a bulk calculation we test convergence with `k_points` equal to $n \times n 
 for some $n$. We repeat this calculation for a range of pseudopotentials, and also test the
 use of the `spin_polarized` variable
 
-TODO: PLOT OF CONVERGENCE WITH KPOINTS
+![energy_against_n_k_points.Png](figures/energy_against_n_k_points.Png)
+![cell_length_against_n_k_points.Png](figures/cell_length_against_n_k_points.Png)
 
 ## Final Bulk Configuration
 
@@ -58,4 +60,4 @@ We found that the calculation converged with an energy cutoff of ...
 
 The final configuration as shown below, can then be used to generate a slab of Copper.
 
-TODO: PLOT OF FINAL CONFIGURATION
+![final arrangement.png](<figures/final arrangement.png>)

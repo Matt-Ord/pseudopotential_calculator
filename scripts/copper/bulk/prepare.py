@@ -10,10 +10,10 @@ from pseudopotential_calculator.calculations.bulk import (
 )
 from pseudopotential_calculator.castep import Castep, CastepConfig
 from pseudopotential_calculator.hpc import (
-    copy_files_to_hpc,
     prepare_calculator_with_submit_script,
     prepare_submit_all_script,
 )
+from pseudopotential_calculator.scripting import maybe_copy_files_to_hpc
 from pseudopotential_calculator.util import prepare_clean_directory
 
 
@@ -40,7 +40,7 @@ def _prepare_k_points_convergence(
         calculators.append(calculator)
 
     prepare_submit_all_script(calculators, data_path)
-    copy_files_to_hpc(data_path, PosixPath(data_path.as_posix()))
+    maybe_copy_files_to_hpc(data_path, PosixPath(data_path.as_posix()))
 
 
 def _prepare_cutoff_energy_convergence(atom: Atoms, data_path: Path) -> None:
@@ -56,7 +56,7 @@ def _prepare_cutoff_energy_convergence(atom: Atoms, data_path: Path) -> None:
         calculators.append(calculator)
 
     prepare_submit_all_script(calculators, data_path)
-    copy_files_to_hpc(data_path, PosixPath(data_path.as_posix()))
+    maybe_copy_files_to_hpc(data_path, PosixPath(data_path.as_posix()))
 
 
 K_POINTS_PATH_PBE = PosixPath("data/copper/bulk/k_points_PBE")

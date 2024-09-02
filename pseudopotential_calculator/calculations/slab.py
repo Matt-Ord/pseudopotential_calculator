@@ -1,22 +1,29 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Self, cast
+from typing import TYPE_CHECKING, Any, NamedTuple, Self, cast
 
+import numpy as np
 from ase import Atoms
 from ase.build import (
-    surface,  # type: ignore  # noqa: PGH003
+    surface,  # type: ignore bad library
 )
 from ase.constraints import FixAtoms
 
 from pseudopotential_calculator.calculations.generic import OptimizationParamsBase
-from pseudopotential_calculator.castep import CastepConfig, get_default_calculator
+from pseudopotential_calculator.castep import (
+    CastepConfig,
+    get_calculator_atom,
+    get_default_calculator,
+)
+from pseudopotential_calculator.util import plot_data_comparison
 
 if TYPE_CHECKING:
     from ase.calculators.castep import Castep
+    from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
+    from matplotlib.lines import Line2D
 
 
-@dataclass
 class SlabOptimizationParams(OptimizationParamsBase):
     """Parameters of a slab calculation."""
 
@@ -51,9 +58,59 @@ def get_slab_vaccum_calculator(
 def get_surface(
     atom: Atoms,
     slab_direction: tuple[int, int, int],
-    thickness: float,
-    vacuum: float,
+    n_layer: int,
+    n_vaccum_layer: int,
+    height_per_vaccum_layer: float,
 ) -> Atoms:
-    # Call the surface function and cast the result to Atoms
-    slab = surface(atom, slab_direction, thickness, vacuum=vacuum)  # type: ignore bad library
-    return cast(Atoms, slab)
+    slab = cast(
+        Atoms,
+        surface(
+            atom,
+            slab_direction,
+            n_layer,
+            n_vaccum_layer * height_per_vaccum_layer,
+        ),
+    )  # type: ignore bad library
+    zmin = np.min(slab.positions[:, 2])  # type: ignore bad library
+    # Adjust the positions to move the bottom layer to z = 0
+    slab.positions[:, 2] -= zmin  # type: ignore bad library
+
+    return slab
+
+
+def _get_n_vaccum_layer_from_calculator(
+    calculator: Castep,
+) -> float:
+    return cast(
+        float,
+        calculator,
+    )
+
+
+def plot_energy_against_n_vaccum_layer(
+    calculators: list[Castep],
+    *,
+    ax: Axes | None = None,
+) -> tuple[Figure, Axes, Line2D]:
+    n_vaccum_layer = list[float]()
+    energies = list[float]()
+    for calculator in calculators:
+        atom = get_calculator_atom(calculator)
+        if atom is None:
+            continue
+        # TODO
+        energies.append(
+            get_calculator_atom(calculator).get_potential_energy(),  # type: ignore
+        )
+        # TODO
+        # n_vaccum_layer.append(_get_n_vaccum_layer_from_slab(atom))
+
+    class PlotTuple(NamedTuple):
+        n_vaccum_layer: np.ndarray[Any, np.dtype[np.float64]]
+        energies: np.ndarray[Any, np.dtype[np.float64]]
+
+    p = PlotTuple(np.array(n_vaccum_layer), np.array(energies))
+    return plot_data_comparison(
+        p,
+        ax=ax,
+    )

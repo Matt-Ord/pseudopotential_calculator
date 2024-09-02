@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal, NamedTuple, Self, cast, overload
 
 import numpy as np
@@ -12,7 +11,7 @@ from pseudopotential_calculator.castep import (
     get_calculator_atom,
     get_default_calculator,
 )
-from pseudopotential_calculator.util import generic_plot
+from pseudopotential_calculator.util import plot_data_comparison
 
 if TYPE_CHECKING:
     from ase.calculators.castep import Castep
@@ -23,7 +22,6 @@ if TYPE_CHECKING:
 XCFunctional = Literal["PBE", "LDA", "WC"]
 
 
-@dataclass
 class BulkOptimizationParams(OptimizationParamsBase):
     """Parameters of a bulk calculation."""
 
@@ -98,6 +96,10 @@ def _get_cutoff_energy_from_calculator(
     )
 
 
+def plot_theoretical_cell_length(ax: Axes) -> None:
+    ax.axhline(y=2.53, linestyle="--", label="Theoretical Length: 2.53")  # type: ignore bad library
+
+
 def plot_cell_length_against_n_k_points(
     calculators: list[Castep],
     direction: int = 0,
@@ -115,7 +117,7 @@ def plot_cell_length_against_n_k_points(
         bond_lengths: np.ndarray[Any, np.dtype[np.float64]]
 
     p = PlotTuple(np.array(n_k_points), np.array(bond_lengths))
-    return generic_plot(
+    return plot_data_comparison(
         p,
         ax=ax,
     )
@@ -138,7 +140,7 @@ def plot_energy_against_n_k_points(
         energies: np.ndarray[Any, np.dtype[np.float64]]
 
     p = PlotTuple(np.array(n_k_points), np.array(energies))
-    return generic_plot(
+    return plot_data_comparison(
         p,
         ax=ax,
     )
@@ -153,7 +155,7 @@ def plot_energy_against_cutoff_energy(
     energies = list[float]()
     for calculator in calculators:
         energies.append(
-            cast(Atoms, get_calculator_atom(calculator)).get_potential_energy(),
+            cast(Atoms, get_calculator_atom(calculator)).get_potential_energy(),  # type: ignore
         )  # type: ignore inkown
         cutoff_energy.append(_get_cutoff_energy_from_calculator(calculator))
 
@@ -162,7 +164,7 @@ def plot_energy_against_cutoff_energy(
         energies: np.ndarray[Any, np.dtype[np.float64]]
 
     p = PlotTuple(np.array(cutoff_energy), np.array(energies))
-    return generic_plot(
+    return plot_data_comparison(
         p,
         ax=ax,
     )
@@ -184,7 +186,7 @@ def plot_cell_length_against_cutoff_energy(
         cell_length: np.ndarray[Any, np.dtype[np.float64]]
 
     p = PlotTuple(np.array(cutoff_energy), np.array(cell_length))
-    return generic_plot(
+    return plot_data_comparison(
         p,
         ax=ax,
     )
