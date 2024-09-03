@@ -60,15 +60,17 @@ def get_surface(
     slab_direction: tuple[int, int, int],
     n_layer: int,
     n_vaccum_layer: int,
-    height_per_vaccum_layer: float,
 ) -> Atoms:
+    # vaccum = distance between adjacent fcc 111 planes, calculated using geometry
+    height_per_vaccum_layer = atom.cell.lengths()[0] * np.sqrt(2) / np.sqrt(3)
+
     slab = cast(
         Atoms,
         surface(
             atom,
             slab_direction,
             n_layer,
-            n_vaccum_layer * height_per_vaccum_layer,
+            n_vaccum_layer * height_per_vaccum_layer / 2,
         ),
     )  # type: ignore bad library
     zmin = np.min(slab.positions[:, 2])  # type: ignore bad library
@@ -78,32 +80,34 @@ def get_surface(
     return slab
 
 
-def _get_n_vaccum_layer_from_calculator(
-    calculator: Castep,
-) -> float:
-    return cast(
-        float,
-        calculator,
-    )
-
-
 def plot_energy_against_n_vaccum_layer(
     calculators: list[Castep],
     *,
     ax: Axes | None = None,
 ) -> tuple[Figure, Axes, Line2D]:
-    n_vaccum_layer = list[float]()
+    """Plot energy against number of vaccum layer.
+
+    This assumes the vaccum is layered up in z direction.
+    """
     energies = list[float]()
+    n_vaccum_layer = list[int]()
     for calculator in calculators:
         atom = get_calculator_atom(calculator)
         if atom is None:
             continue
-        # TODO
+        atom = cast(Atoms, get_calculator_atom(calculator))
         energies.append(
-            get_calculator_atom(calculator).get_potential_energy(),  # type: ignore
+            atom.get_potential_energy(),  # type: ignore bad library
         )
-        # TODO
-        # n_vaccum_layer.append(_get_n_vaccum_layer_from_slab(atom))
+
+        cell_height = atom.get_cell().array[-1][-1]
+        slab_height = cast(float, atom.get_positions()[-1][-1])  # type: ignore
+        slab_height_minus_1_layer = cast(float, atom.get_positions()[-2][-1])  # type: ignore
+
+        height_per_vaccum_layer = slab_height - slab_height_minus_1_layer
+        print(height_per_vaccum_layer)
+        n_vaccum_layers = (cell_height - slab_height) / height_per_vaccum_layer
+        n_vaccum_layer.append(n_vaccum_layers)
 
     class PlotTuple(NamedTuple):
         n_vaccum_layer: np.ndarray[Any, np.dtype[np.float64]]
