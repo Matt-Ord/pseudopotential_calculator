@@ -43,6 +43,9 @@ def _analyze_convergence_with_n_vaccum_layer() -> None:
 def _get_initial_slab(data_path: Path) -> Atoms:
     config = CastepConfig(data_path, "bulk")
     atom = get_calculator_atom(load_calculator(config))
+    if atom is None:
+        msg = "The 'atom' parameter cannot be None."
+        raise ValueError(msg)
     return get_surface(
         atom,
         (1, 1, 1),

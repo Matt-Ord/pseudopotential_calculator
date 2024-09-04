@@ -99,14 +99,16 @@ def _analyze_energy_convergence_with_cutoff_energy() -> None:
     save_fig(fig, SAVE_DIR / plot_name)
 
 
-def _visualize_initial_cell(atom: Atoms) -> None:
+def _visualize_initial_cell(atom: Atoms | None) -> None:
     fig, ax = plt.subplots()  # type: ignore bad library
     plot_atoms(atom, ax, radii=0.3, rotation=("10x,0y,0z"))
     plot_name = "initial_arrangement"
     save_fig(fig, SAVE_DIR / plot_name)
 
 
-def _visualize_final_cell(atom: Atoms) -> None:
+def _visualize_final_cell(atom: Atoms | None) -> None:
+    if atom is None:
+        ValueError("No atom")
     fig, ax = plt.subplots()  # type: ignore bad library
     plot_atoms(atom, ax, radii=0.3, rotation=("10x,0y,0z"))
     plot_name = "final_arrangement"

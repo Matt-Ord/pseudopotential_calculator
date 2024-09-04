@@ -26,7 +26,11 @@ FIXED_ATOMS_PATH = Path("data/copper/slab/fixed_atoms")
 
 def _get_bulk_for_slab(data_path: Path) -> Atoms:
     config = CastepConfig(data_path, "bulk")
-    return get_calculator_atom(load_calculator(config))
+    bulk = get_calculator_atom(load_calculator(config))
+    if bulk is None:
+        msg = "The 'atom' parameter cannot be None."
+        raise ValueError(msg)
+    return bulk
 
 
 def _prepare_vacuum_layer_convergence(atom: Atoms, data_path: Path) -> None:
