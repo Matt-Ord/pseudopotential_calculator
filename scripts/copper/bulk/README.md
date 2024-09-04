@@ -5,7 +5,7 @@ of atoms in the bulk. To do this we generate a single primitive cell
 of material with the correct bond angles and a reasonable initial guess
 for the bond lengths
 
-![initial arrangement.png](<figures/initial arrangement.png>)
+![](figures/initial_arrangement.png)
 
 We then perform a CASTEP geometry optimization routine in order to
 find the true bond lengths of the material.
@@ -15,8 +15,8 @@ find the true bond lengths of the material.
 First we test for convergence against cutoff-energy. This parameter sets
 the highest energy in the basis used for the calculation.
 
-![energy_against_cutoff_energy.png](figures/energy_against_cutoff_energy.png)
-![cell_length_against_cutoff_energy.png](figures/cell_length_against_cutoff_energy.png)
+![](figures/energy_against_cutoff_energy.png)
+![](figures/cell_length_against_cutoff_energy.png)
 
 We find convergence at around $600 eV$, although with the default
 pseudopotential and `k_points` of $10 \times 10 \times 10$ we are
@@ -48,16 +48,19 @@ periodic boundary conditions, and makes use of bloch's theorem to reduce the cos
 a calculation. The number of k-points therefore sets the effective 'size' of the simulation.
 
 For a bulk calculation we test convergence with `k_points` equal to $n \times n \times n$
-for some $n$. We repeat this calculation for a range of pseudopotentials, and also test the
+for some $n$. We repeat this calculation for a range of pseudopotentials(PBE and WC), and also test the
 use of the `spin_polarized` variable
 
-![energy_against_n_k_points.Png](figures/energy_against_n_k_points.Png)
-![cell_length_against_n_k_points.Png](figures/cell_length_against_n_k_points.Png)
+![](figures/energy_against_n_k_points.Png)
+![](figures/cell_length_against_n_k_points.Png)
+
+Notice the WC pseudopotential gives a better converged cell length compared to that given by PBE.
+The `spin_polarized` variable only has a small effect at low cut off energy.
 
 ## Final Bulk Configuration
 
-We found that the calculation converged with an energy cutoff of ...
+We found that the calculation converged with an energy cutoff of 600ev, using WC as the pseudopotential with spin_polarised state off.
 
 The final configuration as shown below, can then be used to generate a slab of Copper.
 
-![final arrangement.png](<figures/final arrangement.png>)
+![](figures/final_arrangement.png)

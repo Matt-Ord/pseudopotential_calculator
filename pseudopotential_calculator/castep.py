@@ -30,7 +30,7 @@ def get_calculator_directory(calculator: Castep) -> Path:
     return Path(calculator._directory)  # type: ignore this is the only way # noqa: SLF001
 
 
-def get_calculator_atom(calculator: Castep) -> Atoms | None:
+def get_calculator_atom(calculator: Castep) -> Atoms:
     return calculator.atoms  # type: ignore this is the only way
 
 
@@ -42,6 +42,19 @@ def get_calculator_config(calculator: Castep) -> CastepConfig:
     return CastepConfig(
         get_calculator_directory(calculator),
         get_calculator_label(calculator),
+    )
+
+
+def get_atom_potential_energy(atom: Atoms) -> float:
+    return atom.get_potential_energy()  # type: ignore this is the only way
+
+
+def get_calculator_cutoff_energy(
+    calculator: Castep,
+) -> float:
+    return cast(
+        float,
+        calculator.param.cut_off_energy.raw_value[0],  # type: ignore unknown
     )
 
 

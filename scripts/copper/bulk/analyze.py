@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from ase.build import (
     bulk,  # type: ignore bad library
 )
-from ase.visualize.plot import plot_atoms  # type: ignore
+from ase.visualize.plot import plot_atoms  # type: ignore bad lib
 
 from pseudopotential_calculator.calculations.bulk import (
     plot_cell_length_against_cutoff_energy,
@@ -16,7 +16,12 @@ from pseudopotential_calculator.calculations.bulk import (
     plot_energy_against_n_k_points,
     plot_theoretical_cell_length,
 )
-from pseudopotential_calculator.castep import load_all_calculators
+from pseudopotential_calculator.castep import (
+    CastepConfig,
+    get_calculator_atom,
+    load_all_calculators,
+    load_calculator,
+)
 from pseudopotential_calculator.scripting import maybe_copy_files_from_hpc
 from pseudopotential_calculator.util import get_figure, save_fig, show_legend
 
@@ -31,11 +36,22 @@ K_POINTS_PATH_WC = PosixPath("data/copper/bulk/k_points_WC")
 K_POINTS_PATH_SP = PosixPath("data/copper/bulk/k_points_SP")
 
 
-def _plot_cell_length_against_n_k_points(paths: list[PosixPath]) -> None:
-    fig, ax = get_figure(None)
-    plot_theoretical_cell_length(ax)
-    for data_path in paths:
+def _download_all() -> None:
+    download_paths = [
+        ENERGY_CUTOFF_PATH,
+        K_POINTS_PATH_PBE,
+        K_POINTS_PATH_WC,
+        K_POINTS_PATH_SP,
+    ]
+
+    for data_path in download_paths:
         maybe_copy_files_from_hpc(data_path, data_path)
+
+
+def _analyze_cell_length_convergence_with_n_k_points(paths: list[PosixPath]) -> None:
+    fig, ax = get_figure(None)
+    plot_theoretical_cell_length(ax, length=2.53)
+    for data_path in paths:
         calculators = load_all_calculators(data_path)
         _, _, line = plot_cell_length_against_n_k_points(calculators, ax=ax)
         line.set_label(data_path.name)
@@ -46,10 +62,9 @@ def _plot_cell_length_against_n_k_points(paths: list[PosixPath]) -> None:
     save_fig(fig, SAVE_DIR / plot_name)
 
 
-def _plot_energy_against_n_k_points(paths: list[PosixPath]) -> None:
+def _analyze_energy_convergence_with_n_k_points(paths: list[PosixPath]) -> None:
     fig, ax = get_figure(None)
     for data_path in paths:
-        maybe_copy_files_from_hpc(data_path, data_path)
         calculators = load_all_calculators(data_path)
         _, _, line = plot_energy_against_n_k_points(calculators, ax=ax)
         line.set_label(data_path.name)
@@ -59,13 +74,13 @@ def _plot_energy_against_n_k_points(paths: list[PosixPath]) -> None:
     save_fig(fig, SAVE_DIR / plot_name)
 
 
-def _plot_cell_length_against_cutoff_energy() -> None:
+def _analyze_cell_length_convergence_with_cutoff_energy() -> None:
     data_path = ENERGY_CUTOFF_PATH
-    maybe_copy_files_from_hpc(data_path, ENERGY_CUTOFF_PATH)
+
     calculators = load_all_calculators(data_path)
 
     fig, ax, _ = plot_cell_length_against_cutoff_energy(calculators)
-    plot_theoretical_cell_length(ax)
+    plot_theoretical_cell_length(ax, length=2.53)
     fig.tight_layout()
     show_legend(ax)
     fig.show()
@@ -73,7 +88,7 @@ def _plot_cell_length_against_cutoff_energy() -> None:
     save_fig(fig, SAVE_DIR / plot_name)
 
 
-def _plot_energy_against_cutoff_energy() -> None:
+def _analyze_energy_convergence_with_cutoff_energy() -> None:
     data_path = ENERGY_CUTOFF_PATH
     calculators = load_all_calculators(data_path)
 
@@ -86,32 +101,33 @@ def _plot_energy_against_cutoff_energy() -> None:
 
 def _visualize_initial_cell(atom: Atoms) -> None:
     fig, ax = plt.subplots()  # type: ignore bad library
-    plot_atoms(atom, ax, radii=0.3, rotation=("45x,45y,0z"))
-    plot_name = "initial arrangement"
+    plot_atoms(atom, ax, radii=0.3, rotation=("10x,0y,0z"))
+    plot_name = "initial_arrangement"
     save_fig(fig, SAVE_DIR / plot_name)
 
 
 def _visualize_final_cell(atom: Atoms) -> None:
     fig, ax = plt.subplots()  # type: ignore bad library
-    plot_atoms(atom, ax, radii=0.3, rotation=("0x,0y,0z"))
-    plot_name = "final arrangement"
+    plot_atoms(atom, ax, radii=0.3, rotation=("10x,0y,0z"))
+    plot_name = "final_arrangement"
     save_fig(fig, SAVE_DIR / plot_name)
 
 
 if __name__ == "__main__":
     paths = [
-        ENERGY_CUTOFF_PATH,
         K_POINTS_PATH_PBE,
         K_POINTS_PATH_WC,
         K_POINTS_PATH_SP,
     ]
-
     initial_structure = bulk("Cu", "fcc", 3.8)
-    # TODO load final structre
-    final_structure = bulk("Cu", "fcc", 3.8)
+
+    final_structure_path = Path("data/copper/bulk/k_points_WC/bulk_10")
+    final_structure_config = CastepConfig(final_structure_path, "bulk")
+    final_structure = get_calculator_atom(load_calculator(final_structure_config))
+    _download_all()
     _visualize_initial_cell(initial_structure)
     _visualize_final_cell(final_structure)
-    _plot_energy_against_cutoff_energy()
-    _plot_cell_length_against_cutoff_energy()
-    _plot_energy_against_n_k_points(paths)
-    _plot_cell_length_against_n_k_points(paths)
+    _analyze_energy_convergence_with_cutoff_energy()
+    _analyze_cell_length_convergence_with_cutoff_energy()
+    _analyze_energy_convergence_with_n_k_points(paths)
+    _analyze_cell_length_convergence_with_n_k_points(paths)

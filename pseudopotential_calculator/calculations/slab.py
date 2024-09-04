@@ -12,6 +12,7 @@ from ase.constraints import FixAtoms
 from pseudopotential_calculator.calculations.generic import OptimizationParamsBase
 from pseudopotential_calculator.castep import (
     CastepConfig,
+    get_atom_potential_energy,
     get_calculator_atom,
     get_default_calculator,
 )
@@ -32,7 +33,7 @@ class SlabOptimizationParams(OptimizationParamsBase):
         return f"{self.n_k_points} {self.n_k_points} {1}"
 
 
-def get_slab_vaccum_calculator(
+def get_slab_vacuum_calculator(
     atoms: Atoms,
     parameters: SlabOptimizationParams,
     config: CastepConfig,
@@ -55,65 +56,78 @@ def get_slab_vaccum_calculator(
     return calculator
 
 
+def get_heigh_per_vacuum_layer(
+    atom: Atoms,
+    slab_direction: tuple[int, int, int],
+) -> int:
+    slab_single_layer = cast(
+        Atoms,
+        surface(
+            atom,
+            slab_direction,
+            layers=2,
+            vacuum=0,
+        ),
+    )
+
+    return slab_single_layer.get_cell().array[-1][-1]
+
+
 def get_surface(
     atom: Atoms,
     slab_direction: tuple[int, int, int],
     n_layer: int,
-    n_vaccum_layer: int,
+    n_vacuum_layer: int,
 ) -> Atoms:
-    # vaccum = distance between adjacent fcc 111 planes, calculated using geometry
-    height_per_vaccum_layer = atom.cell.lengths()[0] * np.sqrt(2) / np.sqrt(3)
-
+    height_per_vacuum_layer = get_heigh_per_vacuum_layer(atom, slab_direction)
     slab = cast(
         Atoms,
         surface(
             atom,
             slab_direction,
             n_layer,
-            n_vaccum_layer * height_per_vaccum_layer / 2,
+            n_vacuum_layer * height_per_vacuum_layer / 2,
         ),
-    )  # type: ignore bad library
-    zmin = np.min(slab.positions[:, 2])  # type: ignore bad library
+    )  # type: ignore bad lib
+    zmin = cast(float, np.min(slab.positions[:, 2]))  # type: ignore bad lib
     # Adjust the positions to move the bottom layer to z = 0
-    slab.positions[:, 2] -= zmin  # type: ignore bad library
-
+    slab.translate([0, 0, -zmin])  # type: ignore bad lib
     return slab
 
 
-def plot_energy_against_n_vaccum_layer(
+class _PlotTuple(NamedTuple):
+    n_vacuum_layer: np.ndarray[Any, np.dtype[np.float64]]
+    energies: np.ndarray[Any, np.dtype[np.float64]]
+
+
+def get_n_vacuum_layers_from_out_put(atom: Atoms) -> int:
+    cell_height = atom.get_cell().array[-1][-1]
+    slab_height = atom.get_cell().array[-1][-1]
+    slab_height_minus_1_layer = cast(float, atom.get_positions()[-2][-1])  # type: ignore bad lib
+    height_per_vacuum_layer = slab_height - slab_height_minus_1_layer
+    return round((cell_height - slab_height) / height_per_vacuum_layer)
+
+
+def plot_energy_against_n_vacuum_layer(
     calculators: list[Castep],
     *,
     ax: Axes | None = None,
 ) -> tuple[Figure, Axes, Line2D]:
-    """Plot energy against number of vaccum layer.
+    """Plot energy against number of vacuum layer.
 
-    This assumes the vaccum is layered up in z direction.
+    This assumes the vacuum is layered up in z direction.
     """
     energies = list[float]()
-    n_vaccum_layer = list[int]()
+    n_vacuum_layer = list[int]()
     for calculator in calculators:
         atom = get_calculator_atom(calculator)
-        if atom is None:
-            continue
-        atom = cast(Atoms, get_calculator_atom(calculator))
         energies.append(
-            atom.get_potential_energy(),  # type: ignore bad library
+            get_atom_potential_energy(atom),
         )
+        n_vacuum_layers = get_n_vacuum_layers_from_out_put(atom)
+        n_vacuum_layer.append(n_vacuum_layers)
 
-        cell_height = atom.get_cell().array[-1][-1]
-        slab_height = cast(float, atom.get_positions()[-1][-1])  # type: ignore
-        slab_height_minus_1_layer = cast(float, atom.get_positions()[-2][-1])  # type: ignore
-
-        height_per_vaccum_layer = slab_height - slab_height_minus_1_layer
-        print(height_per_vaccum_layer)
-        n_vaccum_layers = (cell_height - slab_height) / height_per_vaccum_layer
-        n_vaccum_layer.append(n_vaccum_layers)
-
-    class PlotTuple(NamedTuple):
-        n_vaccum_layer: np.ndarray[Any, np.dtype[np.float64]]
-        energies: np.ndarray[Any, np.dtype[np.float64]]
-
-    p = PlotTuple(np.array(n_vaccum_layer), np.array(energies))
+    p = _PlotTuple(np.array(n_vacuum_layer), np.array(energies))
     return plot_data_comparison(
         p,
         ax=ax,

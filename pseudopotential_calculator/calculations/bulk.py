@@ -8,7 +8,9 @@ from ase import Atoms
 from pseudopotential_calculator.calculations.generic import OptimizationParamsBase
 from pseudopotential_calculator.castep import (
     CastepConfig,
+    get_atom_potential_energy,
     get_calculator_atom,
+    get_calculator_cutoff_energy,
     get_default_calculator,
 )
 from pseudopotential_calculator.util import plot_data_comparison
@@ -28,6 +30,11 @@ class BulkOptimizationParams(OptimizationParamsBase):
     @property
     def kpoint_mp_grid(self: Self) -> str:
         return f"{self.n_k_points} {self.n_k_points} {self.n_k_points}"
+
+
+class _PlotTuple(NamedTuple):
+    x: np.ndarray[Any, np.dtype[np.float64]]
+    y: np.ndarray[Any, np.dtype[np.float64]]
 
 
 def get_bulk_optimization_calculator(
@@ -87,17 +94,8 @@ def _get_n_k_points_from_calculator(
     return kpoint_mp_grid[direction]
 
 
-def _get_cutoff_energy_from_calculator(
-    calculator: Castep,
-) -> float:
-    return cast(
-        float,
-        calculator.param.cut_off_energy.raw_value[0],  # type: ignore unknown
-    )
-
-
-def plot_theoretical_cell_length(ax: Axes) -> None:
-    ax.axhline(y=2.53, linestyle="--", label="Theoretical Length: 2.53")  # type: ignore bad library
+def plot_theoretical_cell_length(ax: Axes, length: float) -> None:
+    ax.axhline(y=length, linestyle="--", label=f"Theoretical Length: {length} Å")  # type: ignore bad library
 
 
 def plot_cell_length_against_n_k_points(
@@ -112,11 +110,7 @@ def plot_cell_length_against_n_k_points(
         bond_lengths.append(_get_cell_lengths_from_calculator(calculator)[direction])
         n_k_points.append(_get_n_k_points_from_calculator(calculator, direction))
 
-    class PlotTuple(NamedTuple):
-        n_k_points: np.ndarray[Any, np.dtype[np.float64]]
-        bond_lengths: np.ndarray[Any, np.dtype[np.float64]]
-
-    p = PlotTuple(np.array(n_k_points), np.array(bond_lengths))
+    p = _PlotTuple(np.array(n_k_points), np.array(bond_lengths))
     return plot_data_comparison(
         p,
         ax=ax,
@@ -135,11 +129,7 @@ def plot_energy_against_n_k_points(
         energies.append(cast(Atoms, calculator.atoms).get_potential_energy())  # type: ignore inkown
         n_k_points.append(_get_n_k_points_from_calculator(calculator, direction))
 
-    class PlotTuple(NamedTuple):
-        n_k_points: np.ndarray[Any, np.dtype[np.float64]]
-        energies: np.ndarray[Any, np.dtype[np.float64]]
-
-    p = PlotTuple(np.array(n_k_points), np.array(energies))
+    p = _PlotTuple(np.array(n_k_points), np.array(energies))
     return plot_data_comparison(
         p,
         ax=ax,
@@ -154,16 +144,13 @@ def plot_energy_against_cutoff_energy(
     cutoff_energy = list[float]()
     energies = list[float]()
     for calculator in calculators:
+        atom = get_calculator_atom(calculator)
         energies.append(
-            cast(Atoms, get_calculator_atom(calculator)).get_potential_energy(),  # type: ignore
-        )  # type: ignore inkown
-        cutoff_energy.append(_get_cutoff_energy_from_calculator(calculator))
+            get_atom_potential_energy(atom),
+        )
+        cutoff_energy.append(get_calculator_cutoff_energy(calculator))
 
-    class PlotTuple(NamedTuple):
-        cutoff_energy: np.ndarray[Any, np.dtype[np.float64]]
-        energies: np.ndarray[Any, np.dtype[np.float64]]
-
-    p = PlotTuple(np.array(cutoff_energy), np.array(energies))
+    p = _PlotTuple(np.array(cutoff_energy), np.array(energies))
     return plot_data_comparison(
         p,
         ax=ax,
@@ -179,13 +166,9 @@ def plot_cell_length_against_cutoff_energy(
     cell_length = list[float]()
     for calculator in calculators:
         cell_length.append(_get_cell_lengths_from_calculator(calculator)[0])
-        cutoff_energy.append(_get_cutoff_energy_from_calculator(calculator))
+        cutoff_energy.append(get_calculator_cutoff_energy(calculator))
 
-    class PlotTuple(NamedTuple):
-        cutoff_energy: np.ndarray[Any, np.dtype[np.float64]]
-        cell_length: np.ndarray[Any, np.dtype[np.float64]]
-
-    p = PlotTuple(np.array(cutoff_energy), np.array(cell_length))
+    p = _PlotTuple(np.array(cutoff_energy), np.array(cell_length))
     return plot_data_comparison(
         p,
         ax=ax,
