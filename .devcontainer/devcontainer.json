@@ -52,10 +52,16 @@
           "tests",
           "lib/surface_potential_analysis/surface_potential_analysis"
         ],
-        "python.analysis.extraPaths": ["lib/surface_potential_analysis"],
+        "python.analysis.extraPaths": [
+          "lib/surface_potential_analysis"
+        ],
         "python.analysis.autoImportCompletions": true,
         "cSpell.allowCompoundWords": true,
-        "cSpell.flagWords": ["hte", "teh"],
+        "cSpell.flagWords": [
+          "hte",
+          "teh",
+          "vaccum"
+        ],
         "cSpell.words": [
           "dtype",
           "ndarray",
@@ -76,7 +82,8 @@
           "diagonalization",
           "Caldeira",
           "hbar",
-          "wannier"
+          "wannier",
+          "CASTEP"
         ]
       },
       "extensions": [

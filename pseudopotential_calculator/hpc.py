@@ -179,10 +179,11 @@ def copy_files_to_hpc(local_folder: Path, remote_folder: PosixPath) -> None:
     username = _get_hpc_username()
 
     remote_folder_absolute = _get_relative_hpc_path(remote_folder)
+
     command = [
         "scp",
         "-r",
-        f"{local_folder.absolute()}/",
+        f"{local_folder.absolute()}/*",
         f"{username}@login.hpc.cam.ac.uk:{remote_folder_absolute.as_posix()}",
     ]
     subprocess.run(
@@ -201,8 +202,8 @@ def copy_files_from_hpc(local_folder: Path, remote_folder: PosixPath) -> None:
     command = [
         "scp",
         "-r",
-        f"{username}@login.hpc.cam.ac.uk:{remote_folder_absolute.as_posix()}/",
-        f"{local_folder.absolute()}",
+        f"{username}@login.hpc.cam.ac.uk:{remote_folder_absolute.as_posix()}/*",
+        f"{local_folder.absolute()}/",
     ]
     subprocess.run(
         command,  # noqa: S603

@@ -9,7 +9,10 @@ The behavior of these functions can be configured using environment variables
 - `HPC_ACCOUNT`: The account used to submit jobs on the HPC
 - `HPC_USERNAME` : The user used to sign in to the HPC
 - `HPC_WORKSPACE` : The workspace used to upload files, the default being `/rds/user/{HPC_USERNAME}/hpc-work`
+- `SKIP_DOWNLOAD` : The boolean variable indicating whether to fetch files from hpc, when the function in analyze.py is called
+- `SKIP_UPLOAD` : The boolean variable indicating whether to fetch files to hpc, when the function in prepare.py is called
 
+By default, you will be promted each time these variables are
 By default, you will be promted each time these variables are
 required, but by setting the environment variable this can be skipped.
 
@@ -44,7 +47,7 @@ chmod 600 ~/.ssh/id_ed25519
 ssh-copy-id -i ~/.ssh/id_ed25519.pub username@login.hpc.cam.ac.uk
 ```
 
-# Directly interacting with the HPC
+## Directly interacting with the HPC
 
 It is also sometimes useful to interact directly with the HPC in the CLI using ssh
 
@@ -84,7 +87,7 @@ chmod u+x filename
 # Remove all files in data directory
 rm -r data
 # make a directory at data/copper/bulk
-mkdir -r data/copper/bulk
+mkdir -p data/copper/bulk
 ```
 
 To upload files to the HPC, the scp command should be used inside the local terminal

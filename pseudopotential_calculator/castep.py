@@ -30,6 +30,14 @@ def get_calculator_directory(calculator: Castep) -> Path:
     return Path(calculator._directory)  # type: ignore this is the only way # noqa: SLF001
 
 
+def get_calculator_atom(calculator: Castep) -> Atoms:
+    atoms = cast(Atoms | None, calculator.atoms)  # type: ignore this is the only way
+    if atoms is None:
+        msg = "Calculator did not have Atoms attached."
+        raise ValueError(msg)
+    return atoms
+
+
 def get_calculator_label(calculator: Castep) -> str:
     return calculator._label  # type: ignore this is the only way # noqa: SLF001
 
@@ -39,6 +47,16 @@ def get_calculator_config(calculator: Castep) -> CastepConfig:
         get_calculator_directory(calculator),
         get_calculator_label(calculator),
     )
+
+
+def get_atom_potential_energy(atom: Atoms) -> float:
+    return atom.get_potential_energy()  # type: ignore this is the only way
+
+
+def get_calculator_cutoff_energy(
+    calculator: Castep,
+) -> float:
+    return cast(float, calculator.param.cut_off_energy.raw_value[0])  # type: ignore unknown
 
 
 # Fixes bug reported here <https://gitlab.com/ase/ase/-/issues/1531>
@@ -135,6 +153,9 @@ def get_default_calculator(
     calculator._set_atoms = True  # type: ignore only way # noqa: SLF001
     calculator.param.num_dump_cycles = 0
     calculator.param.reuse = True
+    calculator.param.elec_energy_tol = 1e-06
+    calculator.param.geom_energy_tol = 1e-05
+    calculator.param.geom_disp_tol = 1e-03
 
     return calculator
 
@@ -158,6 +179,10 @@ def load_calculator(config: CastepConfig) -> Castep:
 
     calculator.push_oldstate()
     return calculator
+
+
+def load_calculator_atoms(config: CastepConfig) -> Atoms:
+    return get_calculator_atom(load_calculator(config))
 
 
 def load_all_calculators(directory: Path) -> list[Castep]:
