@@ -40,7 +40,7 @@ def _analyze_cell_length_convergence_with_n_k_points(paths: list[PosixPath]) -> 
 
     show_legend(ax)
 
-    plot_name = "cell_length_against_n_k_points.Png"
+    plot_name = "cell_length_against_n_k_points.png"
     save_fig(fig, SAVE_DIR / plot_name)
 
 
@@ -53,7 +53,7 @@ def _analyze_energy_convergence_with_n_k_points(paths: list[PosixPath]) -> None:
 
     show_legend(ax)
 
-    plot_name = "energy_against_n_k_points.Png"
+    plot_name = "energy_against_n_k_points.png"
     save_fig(fig, SAVE_DIR / plot_name)
 
 
@@ -65,7 +65,7 @@ def _analyze_cell_length_convergence_with_cutoff_energy(data_path: Path) -> None
     fig.tight_layout()
     show_legend(ax)
 
-    plot_name = "cell_length_against_cutoff_energy"
+    plot_name = "cell_length_against_cutoff_energy.png"
     save_fig(fig, SAVE_DIR / plot_name)
 
 
@@ -75,7 +75,7 @@ def _analyze_energy_convergence_with_cutoff_energy(data_path: Path) -> None:
     fig, _, _ = plot_energy_against_cutoff_energy(calculators)
     fig.tight_layout()
 
-    plot_name = "energy_against_cutoff_energy"
+    plot_name = "energy_against_cutoff_energy.png"
     save_fig(fig, SAVE_DIR / plot_name)
 
 
@@ -83,7 +83,7 @@ def _visualize_final_atoms(config: CastepConfig) -> None:
     atoms = load_calculator_atoms(config)
 
     fig, _ = plot_atoms(atoms, radii=0.3, rotation=(10, 0, 0))
-    plot_name = "final_arrangement"
+    plot_name = "final_arrangement.png"
     save_fig(fig, SAVE_DIR / plot_name)
 
 

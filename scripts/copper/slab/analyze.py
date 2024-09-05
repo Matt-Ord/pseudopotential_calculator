@@ -41,7 +41,7 @@ def _analyze_convergence_with_n_free_layer() -> None:
         line.set_label(f"{n_th_layer}_th_layer")
     show_legend(ax)
     fig.show()
-    plot_name = "displacement_against_n_free_layer"
+    plot_name = "displacement_against_n_free_layer.png"
     save_fig(fig, SAVE_DIR / plot_name)
 
 
