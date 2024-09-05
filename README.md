@@ -9,9 +9,7 @@ The behavior of these functions can be configured using environment variables
 - `HPC_ACCOUNT`: The account used to submit jobs on the HPC
 - `HPC_USERNAME` : The user used to sign in to the HPC
 - `HPC_WORKSPACE` : The workspace used to upload files, the default being `/rds/user/{HPC_USERNAME}/hpc-work`
-
 - `SKIP_DOWNLOAD` : The boolean variable indicating whether to fetch files from hpc, when the function in analyze.py is called
-
 - `SKIP_UPLOAD` : The boolean variable indicating whether to fetch files to hpc, when the function in prepare.py is called
 
 By default, you will be promted each time these variables are
