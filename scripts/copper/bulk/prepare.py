@@ -73,7 +73,7 @@ SAVE_DIR = Path(__file__).parent / "figures"
 
 def _visualize_initial_atoms(atom: Atoms) -> None:
     fig, _ = plot_atoms(atom, radii=0.3, rotation=(10, 0, 0))
-    plot_name = "initial_arrangement"
+    plot_name = "initial_arrangement.png"
     save_fig(fig, SAVE_DIR / plot_name)
 
 

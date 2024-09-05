@@ -4,8 +4,7 @@ from ase import Atoms
 
 from pseudopotential_calculator.calculations.slab import (
     SlabOptimizationParams,
-    get_slab_relax_calculator,
-    get_slab_vacuum_calculator,
+    get_slab_calculator,
     get_surface,
 )
 from pseudopotential_calculator.castep import (
@@ -36,7 +35,7 @@ def _prepare_vacuum_layer_convergence(atom: Atoms, data_path: Path) -> None:
         slab_copper = get_surface(
             atom,
             (1, 1, 1),
-            n_layer=5,
+            n_fixed_layer=5,
             n_vacuum_layer=n_vacuum_layer,
         )
 
@@ -45,7 +44,7 @@ def _prepare_vacuum_layer_convergence(atom: Atoms, data_path: Path) -> None:
             "slab",
         )
         params = SlabOptimizationParams(n_k_points=10)
-        calculator = get_slab_vacuum_calculator(slab_copper, params, config)
+        calculator = get_slab_calculator(slab_copper, params, config)
         prepare_calculator_with_submit_script(calculator)
 
         calculators.append(calculator)
@@ -58,11 +57,11 @@ def _prepare_free_layer_convergence(atom: Atoms, data_path: Path) -> None:
     prepare_clean_directory(data_path)
     for n_free_layer in range(1, 6):
         n_fixed_layer = n_free_layer + 1
-        n_cu_layer = n_fixed_layer + n_free_layer
         slab_copper = get_surface(
             atom,
             (1, 1, 1),
-            n_layer=n_cu_layer,
+            n_fixed_layer=n_fixed_layer,
+            n_free_layer=n_free_layer,
             n_vacuum_layer=5,
         )
 
@@ -71,11 +70,11 @@ def _prepare_free_layer_convergence(atom: Atoms, data_path: Path) -> None:
             "slab",
         )
         params = SlabOptimizationParams(n_k_points=10)
-        calculator = get_slab_relax_calculator(
+        calculator = get_slab_calculator(
             slab_copper,
-            n_fixed_layer,
             params,
             config,
+            task="GeometryOptimization",
         )
         prepare_calculator_with_submit_script(calculator)
 
@@ -94,7 +93,7 @@ if __name__ == "__main__":
     slab_copper = get_surface(
         bulk_copper,
         (1, 1, 1),
-        n_layer=5,
+        n_fixed_layer=5,
         n_vacuum_layer=5,
     )
 
