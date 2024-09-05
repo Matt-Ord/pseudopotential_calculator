@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, NamedTuple, Self, cast
+from typing import TYPE_CHECKING, Self, cast
 
 import numpy as np
 from ase import Atoms
 from ase.build import (
+    add_vacuum,  # type: ignore bad library
     surface,  # type: ignore bad library
 )
 from ase.constraints import FixAtoms
@@ -42,7 +43,7 @@ def get_slab_vacuum_calculator(
 
     calculator.param.xc_functional = parameters.xc_functional
     calculator.param.cut_off_energy = parameters.cut_off_energy
-    calculator.param.spin_polarized = "true" if parameters.spin_polarized else "false"
+    calculator.param.spin_polarized = parameters.spin_polarized
     calculator.cell.kpoint_mp_grid = parameters.kpoint_mp_grid
 
     # Prevent the bulk cell from rotating
@@ -56,10 +57,12 @@ def get_slab_vacuum_calculator(
     return calculator
 
 
-def get_heigh_per_vacuum_layer(
+def _get_height_per_layer(
     atom: Atoms,
     slab_direction: tuple[int, int, int],
 ) -> int:
+    # create a slab with two layers,
+    # the hight per layer is the difference between the two heights
     slab_single_layer = cast(
         Atoms,
         surface(
@@ -70,42 +73,35 @@ def get_heigh_per_vacuum_layer(
         ),
     )
 
-    return slab_single_layer.get_cell().array[-1][-1]
+    position_0 = slab_single_layer.positions[0, 2]  # type: ignore unknown
+    position_1 = slab_single_layer.positions[1, 2]  # type: ignore unknown
+    return np.abs(cast(float, position_0) - cast(float, position_1))
 
 
 def get_surface(
     atom: Atoms,
     slab_direction: tuple[int, int, int],
+    *,
     n_layer: int,
     n_vacuum_layer: int,
 ) -> Atoms:
-    height_per_vacuum_layer = get_heigh_per_vacuum_layer(atom, slab_direction)
-    slab = cast(
-        Atoms,
-        surface(
-            atom,
-            slab_direction,
-            n_layer,
-            n_vacuum_layer * height_per_vacuum_layer / 2,
-        ),
-    )  # type: ignore bad lib
-    zmin = cast(float, np.min(slab.positions[:, 2]))  # type: ignore bad lib
-    # Adjust the positions to move the bottom layer to z = 0
-    slab.translate([0, 0, -zmin])  # type: ignore bad lib
+    slab = cast(Atoms, surface(atom, slab_direction, n_layer, 0))
+
+    height_per_layer = _get_height_per_layer(atom, slab_direction)
+    add_vacuum(slab, n_vacuum_layer * height_per_layer)
     return slab
 
 
-class _PlotTuple(NamedTuple):
-    n_vacuum_layer: np.ndarray[Any, np.dtype[np.float64]]
-    energies: np.ndarray[Any, np.dtype[np.float64]]
-
-
-def get_n_vacuum_layers_from_out_put(atom: Atoms) -> int:
+def get_n_vacuum_layers_from_out_put(atom: Atoms) -> float:
     cell_height = atom.get_cell().array[-1][-1]
-    slab_height = atom.get_cell().array[-1][-1]
-    slab_height_minus_1_layer = cast(float, atom.get_positions()[-2][-1])  # type: ignore bad lib
-    height_per_vacuum_layer = slab_height - slab_height_minus_1_layer
-    return round((cell_height - slab_height) / height_per_vacuum_layer)
+
+    atom_heights = list[float](atom.positions[:, 2])  # type: ignore unknown
+    slab_height = max(atom_heights) - min(atom_heights)
+    height_per_layer = slab_height / len(atom_heights)
+
+    vacuum_height = cell_height - slab_height
+
+    return vacuum_height / height_per_layer
 
 
 def plot_energy_against_n_vacuum_layer(
@@ -118,17 +114,16 @@ def plot_energy_against_n_vacuum_layer(
     This assumes the vacuum is layered up in z direction.
     """
     energies = list[float]()
-    n_vacuum_layer = list[int]()
+    n_vacuum_layer = list[float]()
     for calculator in calculators:
         atom = get_calculator_atom(calculator)
-        energies.append(
-            get_atom_potential_energy(atom),
-        )
+
+        energies.append(get_atom_potential_energy(atom))
         n_vacuum_layers = get_n_vacuum_layers_from_out_put(atom)
         n_vacuum_layer.append(n_vacuum_layers)
 
-    p = _PlotTuple(np.array(n_vacuum_layer), np.array(energies))
     return plot_data_comparison(
-        p,
+        ("Vacuum Height", np.array(n_vacuum_layer), "N layers"),
+        ("Energy", np.array(energies), "J"),
         ax=ax,
     )
