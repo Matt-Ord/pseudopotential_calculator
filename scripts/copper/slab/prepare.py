@@ -43,7 +43,7 @@ def _prepare_vacuum_layer_convergence(atom: Atoms, data_path: Path) -> None:
             data_path / f"slab_{n_vacuum_layer}_vacuum_layer",
             "slab",
         )
-        params = SlabOptimizationParams(n_k_points=10)
+        params = SlabOptimizationParams(n_k_points=10, xc_functional="WC")
         calculator = get_slab_calculator(slab_copper, params, config)
         prepare_calculator_with_submit_script(calculator)
 
@@ -62,14 +62,14 @@ def _prepare_free_layer_convergence(atom: Atoms, data_path: Path) -> None:
             (1, 1, 1),
             n_fixed_layer=n_fixed_layer,
             n_free_layer=n_free_layer,
-            n_vacuum_layer=5,
+            n_vacuum_layer=6,
         )
 
         config = CastepConfig(
             data_path / f"slab_{n_free_layer}_free_layer",
             "slab",
         )
-        params = SlabOptimizationParams(n_k_points=10)
+        params = SlabOptimizationParams(n_k_points=12, xc_functional="WC")
         calculator = get_slab_calculator(
             slab_copper,
             params,
