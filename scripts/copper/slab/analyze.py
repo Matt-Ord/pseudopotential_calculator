@@ -32,15 +32,14 @@ def _analyze_convergence_with_n_free_layer() -> None:
     maybe_copy_files_from_hpc(data_path, data_path)
     calculators = load_all_calculators(data_path)
     fig, ax = get_figure(None)
-    for n_th_layer in range(1, 6):
+    for layer in range(1, 6):
         _, _, line = plot_displacement_against_n_free_layer(
             calculators,
-            n_th_layer,
+            layer,
             ax=ax,
         )
-        line.set_label(f"{n_th_layer}_th_layer")
+        line.set_label(f"layer {layer}")
     show_legend(ax)
-    fig.show()
     plot_name = "displacement_against_n_free_layer.png"
     save_fig(fig, SAVE_DIR / plot_name)
 

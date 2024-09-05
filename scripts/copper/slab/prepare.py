@@ -87,8 +87,8 @@ if __name__ == "__main__":
     bulk_config = CastepConfig(Path("data/copper/bulk/k_points_WC/bulk_10"), "bulk")
     bulk_copper = load_calculator_atoms(bulk_config)
 
-    _prepare_vacuum_layer_convergence(bulk_copper, VACUUM_LAYER_PATH)
     _prepare_free_layer_convergence(bulk_copper, FREE_LAYER_PATH)
+    _prepare_vacuum_layer_convergence(bulk_copper, VACUUM_LAYER_PATH)
 
     slab_copper = get_surface(
         bulk_copper,
