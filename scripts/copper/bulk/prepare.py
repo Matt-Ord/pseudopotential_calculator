@@ -1,6 +1,8 @@
-from pathlib import Path, PosixPath
+from __future__ import annotations
 
-from ase import Atoms
+from pathlib import Path, PosixPath
+from typing import TYPE_CHECKING
+
 from ase.build import bulk  # type: ignore bad library
 
 from pseudopotential_calculator.calculations.bulk import (
@@ -14,7 +16,14 @@ from pseudopotential_calculator.hpc import (
     prepare_submit_all_script,
 )
 from pseudopotential_calculator.scripting import maybe_copy_files_to_hpc
-from pseudopotential_calculator.util import prepare_clean_directory
+from pseudopotential_calculator.util import (
+    plot_atoms,
+    prepare_clean_directory,
+    save_fig,
+)
+
+if TYPE_CHECKING:
+    from ase import Atoms
 
 
 def _prepare_k_points_convergence(
@@ -59,6 +68,15 @@ def _prepare_cutoff_energy_convergence(atom: Atoms, data_path: Path) -> None:
     maybe_copy_files_to_hpc(data_path, PosixPath(data_path.as_posix()))
 
 
+SAVE_DIR = Path(__file__).parent / "figures"
+
+
+def _visualize_initial_atoms(atom: Atoms) -> None:
+    fig, _ = plot_atoms(atom, radii=0.3, rotation=(10, 0, 0))
+    plot_name = "initial_arrangement"
+    save_fig(fig, SAVE_DIR / plot_name)
+
+
 K_POINTS_PATH_PBE = PosixPath("data/copper/bulk/k_points_PBE")
 K_POINTS_PATH_WC = PosixPath("data/copper/bulk/k_points_WC")
 K_POINTS_PATH_SP = PosixPath("data/copper/bulk/k_points_SP")
@@ -71,3 +89,5 @@ if __name__ == "__main__":
     _prepare_k_points_convergence(bulk_copper, K_POINTS_PATH_SP, spin_polarized=True)
     _prepare_k_points_convergence(bulk_copper, K_POINTS_PATH_PBE, xc_functional="PBE")
     _prepare_cutoff_energy_convergence(bulk_copper, ENERGY_CUTOFF_PATH)
+
+    _visualize_initial_atoms(bulk_copper)

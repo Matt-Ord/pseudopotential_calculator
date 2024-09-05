@@ -10,39 +10,33 @@ from pseudopotential_calculator.calculations.slab import (
 from pseudopotential_calculator.castep import (
     Castep,
     CastepConfig,
-    get_calculator_atom,
-    load_calculator,
+    load_calculator_atoms,
 )
 from pseudopotential_calculator.hpc import (
     prepare_calculator_with_submit_script,
     prepare_submit_all_script,
 )
 from pseudopotential_calculator.scripting import maybe_copy_files_to_hpc
-from pseudopotential_calculator.util import prepare_clean_directory
+from pseudopotential_calculator.util import (
+    plot_atoms,
+    prepare_clean_directory,
+    save_fig,
+)
 
 VACUUM_LAYER_PATH = Path("data/copper/slab/vacuum_layer")
 FIXED_ATOMS_PATH = Path("data/copper/slab/fixed_atoms")
-
-
-def _get_bulk_for_slab(data_path: Path) -> Atoms:
-    config = CastepConfig(data_path, "bulk")
-    bulk = get_calculator_atom(load_calculator(config))
-    if bulk is None:
-        msg = "The 'atom' parameter cannot be None."
-        raise ValueError(msg)
-    return bulk
 
 
 def _prepare_vacuum_layer_convergence(atom: Atoms, data_path: Path) -> None:
     calculators = list[Castep]()
     prepare_clean_directory(data_path)
 
-    for n_vacuum_layer in range(3, 21):
+    for n_vacuum_layer in range(1, 9):
         slab_copper = get_surface(
             atom,
             (1, 1, 1),
-            5,
-            n_vacuum_layer,
+            n_layer=5,
+            n_vacuum_layer=n_vacuum_layer,
         )
 
         config = CastepConfig(
@@ -59,6 +53,19 @@ def _prepare_vacuum_layer_convergence(atom: Atoms, data_path: Path) -> None:
 
 
 if __name__ == "__main__":
-    data_path = Path("data/copper/bulk/k_points_WC/bulk_10")
-    bulk_copper = _get_bulk_for_slab(data_path)
+    bulk_config = CastepConfig(Path("data/copper/bulk/k_points_WC/bulk_10"), "bulk")
+    bulk_copper = load_calculator_atoms(bulk_config)
+
     _prepare_vacuum_layer_convergence(bulk_copper, VACUUM_LAYER_PATH)
+
+    slab_copper = get_surface(
+        bulk_copper,
+        (1, 1, 1),
+        n_layer=5,
+        n_vacuum_layer=5,
+    )
+
+    fig, _ = plot_atoms(slab_copper, radii=0.3, rotation=(-90, +30, 0))
+    SAVE_DIR = Path(__file__).parent / "figures"
+    plot_name = "initial_arrangement.png"
+    save_fig(fig, SAVE_DIR / plot_name)
