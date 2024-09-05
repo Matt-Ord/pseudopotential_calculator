@@ -57,6 +57,28 @@ def get_slab_vacuum_calculator(
     return calculator
 
 
+def get_slab_relax_calculator(
+    atoms: Atoms,
+    n_fixed_layer: int,
+    parameters: SlabOptimizationParams,
+    config: CastepConfig,
+) -> Castep:
+    calculator = get_default_calculator(config)
+    calculator.param.xc_functional = parameters.xc_functional
+    calculator.param.cut_off_energy = parameters.cut_off_energy
+    calculator.param.spin_polarized = "true" if parameters.spin_polarized else "false"
+    calculator.cell.kpoint_mp_grid = parameters.kpoint_mp_grid
+    # Prevent the bulk cell from rotating
+    calculator.cell.cell_constraints = "0 0 0\n0 0 0"
+    calculator.task = "Energy"
+    mask = [i < n_fixed_layer for i in range(len(atoms))]
+    atoms.set_constraint(FixAtoms(mask))  # type: ignore unknown
+    calculator.set_atoms(atoms)  # type: ignore unknown
+    # Temporary fix for bug in ase
+    atoms.calc = calculator
+    return calculator
+
+
 def _get_height_per_layer(
     atom: Atoms,
     slab_direction: tuple[int, int, int],
@@ -92,7 +114,7 @@ def get_surface(
     return slab
 
 
-def get_n_vacuum_layers_from_out_put(atom: Atoms) -> float:
+def _get_n_vacuum_layers_from_slab(atom: Atoms) -> float:
     cell_height = atom.get_cell().array[-1][-1]
 
     atom_heights = list[float](atom.positions[:, 2])  # type: ignore unknown
@@ -119,11 +141,47 @@ def plot_energy_against_n_vacuum_layer(
         atom = get_calculator_atom(calculator)
 
         energies.append(get_atom_potential_energy(atom))
-        n_vacuum_layers = get_n_vacuum_layers_from_out_put(atom)
+        n_vacuum_layers = _get_n_vacuum_layers_from_slab(atom)
         n_vacuum_layer.append(n_vacuum_layers)
 
     return plot_data_comparison(
         ("Vacuum Height", np.array(n_vacuum_layer), "N layers"),
         ("Energy", np.array(energies), "J"),
+        ax=ax,
+    )
+
+
+def get_atom_displacement(atom: Atoms, n_th_layer: int) -> float:
+    heights = atom.positions[:, 2]  # type: ignore bad lib
+    sorted_heights = np.unique(heights)[::-1]  # type: ignore bad lib
+    return sorted_heights[n_th_layer - 1] - sorted_heights[n_th_layer]
+
+
+def get_n_free_layer(atom: Atoms) -> int:
+    heights = atom.positions[:, 2]  # type: ignore bad lib
+    return (len(np.unique(heights)) + 1) / 2  # type: ignore bad lib
+
+
+def plot_displacement_against_n_free_layer(
+    calculators: list[Castep],
+    n_th_layer: int,
+    *,
+    ax: Axes | None = None,
+) -> tuple[Figure, Axes, Line2D]:
+    """Plot displacement of free atoms against number of free layer."""
+    displacement = list[float]()
+    n_free_layer = list[int]()
+    for calculator in calculators:
+        atom = get_calculator_atom(calculator)
+
+        displacement.append(
+            get_atom_displacement(atom, n_th_layer),
+        )
+        n_free_layers = get_n_free_layer(atom)
+        n_free_layer.append(n_free_layers)
+
+    return plot_data_comparison(
+        ("N Free Layers", np.array(n_free_layer), None),
+        ("Displacement", np.array(displacement), "m"),
         ax=ax,
     )
