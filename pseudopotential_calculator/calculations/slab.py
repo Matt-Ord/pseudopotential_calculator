@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal, Self, cast
+from typing import TYPE_CHECKING, Any, Literal, Self, cast
 
 import numpy as np
 from ase import Atoms
@@ -81,19 +81,16 @@ def _get_height_per_layer(
 
 def _get_constraints(
     atoms: Atoms,
-    n_fixed_layer: int,
-    height_per_layer: float,
-    slab_direction: tuple[int, int, int],
+    n_free_layer: int,
 ) -> list[FixAtoms | FixedLine]:
-    fixed_layer_mask = [i < n_fixed_layer for i in range(len(atoms))]
-    free_layer_indices = [  # type: ignore bad lib
-        atom.index  # type: ignore bad lib
-        for atom in atoms  # type: ignore bad lib
-        if atom.position[2] >= n_fixed_layer * height_per_layer  # type: ignore bad lib
-    ]
+    heights = _get_heights_sorted(atoms)
+    sorted_indices = np.argsort(heights)
+
+    free_layer_indices = [i for i in sorted_indices if i < n_free_layer]
+    fixed_layer_indices = [i for i in sorted_indices if i >= n_free_layer]
     return [
-        FixAtoms(fixed_layer_mask),
-        FixedLine(free_layer_indices, slab_direction),  # type: ignore bad lib
+        FixAtoms(fixed_layer_indices),
+        FixedLine(free_layer_indices, [0, 0, 1]),  # type: ignore bad lib
     ]
 
 
@@ -112,7 +109,7 @@ def get_surface(
     add_vacuum(atoms, n_vacuum_layer * height_per_layer)
 
     atoms.set_constraint(  # type: ignore bad lib
-        _get_constraints(atoms, n_fixed_layer, height_per_layer, slab_direction),
+        _get_constraints(atoms, n_free_layer),
     )
     return atoms
 
@@ -128,20 +125,25 @@ def _get_n_vacuum_layers_from_slab(atom: Atoms) -> float:
     return vacuum_height / height_per_layer
 
 
+def _get_heights_sorted(atom: Atoms) -> np.ndarray[Any, np.dtype[np.float64]]:
+    heights = cast(np.ndarray[Any, np.dtype[np.float64]], atom.positions[:, 2])  # type: ignore bad lib
+    return np.unique(heights)[::-1]
+
+
 def get_n_th_slab_layer_height(atom: Atoms, n_th_layer: int) -> float:
-    heights = cast(list[float], atom.positions[:, 2])  # type: ignore bad lib
-    sorted_heights = np.unique(heights)[::-1]
-    return sorted_heights[n_th_layer - 1]
+    heights = _get_heights_sorted(atom)
+    return heights[n_th_layer - 1]
 
 
 def get_height_per_slab_layer(atom: Atoms) -> float:
-    heights = cast(list[float], atom.positions[:, 2])  # type: ignore bad lib
+    _get_heights_sorted(atom)
+    heights = _get_heights_sorted(atom)
     sorted_heights = np.unique(heights)[::-1]
     return sorted_heights[-2]
 
 
 def get_n_slab_layer(atom: Atoms) -> int:
-    heights = cast(list[float], atom.positions[:, 2])  # type: ignore bad lib
+    heights = _get_heights_sorted(atom)
     return len(heights)
 
 
@@ -178,14 +180,6 @@ def get_atom_displacement(atom: Atoms, n_th_layer: int) -> float:
     return atom_height_before_relax - atom_height
 
 
-def get_n_free_layer(atom: Atoms) -> int:
-    # TODO should read atom cell constraints to find free and fixed layers
-    # Note heights is not a list !!! be careful about using cast
-    heights = cast(list[float], atom.positions[:, 2])  # type: ignore bad lib
-    n_cu_layer = len(np.unique(heights))
-    return (n_cu_layer - 1) / 2  # type: ignore bad lib
-
-
 def plot_displacement_against_n_free_layer(
     calculators: list[Castep],
     layer_idx: int,
@@ -201,9 +195,9 @@ def plot_displacement_against_n_free_layer(
         displacement.append(
             get_atom_displacement(atom, layer_idx),
         )
-        n_free_layers = get_n_free_layer(atom)
+        # TODO fix potential bugs with data
+        n_free_layers = len(atom.constraints[1].index)  # type: ignore bad lin
         n_free_layer.append(n_free_layers)
-
     fig, ax, line = plot_data_comparison(
         ("N Free Layers", np.array(n_free_layer), None),
         ("Displacement", np.array(displacement), "m"),
