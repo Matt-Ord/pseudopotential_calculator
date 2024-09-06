@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Literal, Self, cast
 
 import numpy as np
-from ase import Atoms
+from ase import Atom, Atoms
 from ase.build import (
     add_vacuum,  # type: ignore bad library
     surface,  # type: ignore bad library
@@ -32,6 +32,20 @@ class SlabOptimizationParams(OptimizationParamsBase):
     @property
     def kpoint_mp_grid(self: Self) -> str:
         return f"{self.n_k_points} {self.n_k_points} {1}"
+
+
+def repeat_slab(slab: Atoms, amount: tuple[int, int, int]) -> Atoms:
+    return slab.repeat(amount)  # type: ignore bad lib
+
+
+def add_atom_onto_slab(atom: Atom, slab: Atoms) -> Atoms:
+    slab.append(atom)  # type: ignore bad lib
+    return slab
+
+
+def get_top_position(atom: Atoms) -> list[float]:
+    positions = atom.positions  # type: ignore bad lib
+    return max(positions, key=lambda x: x[2])  # type: ignore bad lib
 
 
 def get_slab_calculator(
@@ -104,7 +118,8 @@ def get_surface(
 ) -> Atoms:
     n_layer = n_free_layer + n_fixed_layer
     atoms = cast(Atoms, surface(atom, slab_direction, n_layer, 0))
-
+    positions = atoms.positions  # type: ignore for now
+    print(positions)  # type: ignore haha
     height_per_layer = _get_height_per_layer(atom, slab_direction)
     add_vacuum(atoms, n_vacuum_layer * height_per_layer)
 
