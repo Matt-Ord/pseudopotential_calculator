@@ -172,12 +172,16 @@ def plot_energy_against_n_vacuum_layer(
     )
 
 
-def get_atom_displacement(atom: Atoms, n_th_layer: int) -> float:
+def get_atom_displacement(atom: Atoms, layer_idx: int) -> float:
     n_slab_layer = get_n_slab_layer(atom)
-    atom_height = get_n_th_slab_layer_height(atom, n_th_layer)
-    height_per_slab_layer = get_height_per_slab_layer(atom)
-    atom_height_before_relax = (n_slab_layer - (n_th_layer - 1)) * height_per_slab_layer
-    return atom_height_before_relax - atom_height
+    if layer_idx <= n_slab_layer:
+        atom_height = get_n_th_slab_layer_height(atom, layer_idx)
+        height_per_slab_layer = get_height_per_slab_layer(atom)
+        atom_height_before_relax = (
+            n_slab_layer - (layer_idx - 1)
+        ) * height_per_slab_layer
+        return atom_height_before_relax - atom_height
+    return 0
 
 
 def plot_displacement_against_n_free_layer(
