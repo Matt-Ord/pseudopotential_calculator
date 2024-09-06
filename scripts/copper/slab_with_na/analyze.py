@@ -1,6 +1,6 @@
 from pathlib import Path, PosixPath
 
-from pseudopotential_calculator.calculations.slab import plot_energy_against_nxn_repeats
+from pseudopotential_calculator.calculations.slab import plot_energy_against_nxn_slab
 from pseudopotential_calculator.castep import (
     load_all_calculators,
 )
@@ -17,7 +17,7 @@ def _analyze_convergence_with_nxn_slab() -> None:
     maybe_copy_files_from_hpc(data_path, data_path)
     calculators = load_all_calculators(data_path)
 
-    fig, _, _ = plot_energy_against_nxn_repeats(calculators)
+    fig, _, _ = plot_energy_against_nxn_slab(calculators)
     fig.tight_layout()
     plot_name = "energy_against_nxn_slab.png"
     save_fig(fig, SAVE_DIR / plot_name)
