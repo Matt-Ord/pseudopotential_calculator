@@ -48,6 +48,31 @@ def get_top_position(atom: Atoms) -> list[float]:
     return max(positions, key=lambda x: x[2])  # type: ignore bad lib
 
 
+def get_nxn_repeats(atom: Atoms) -> int:
+    n_slab_atoms = len(atom.positions) - 1  # type: ignore bad lib
+    n_atoms_per_repeat = get_n_slab_layer(atom) - 1
+    return np.sqrt(round(n_slab_atoms / n_atoms_per_repeat))
+
+
+def plot_energy_against_nxn_slab(
+    calculators: list[Castep],
+    *,
+    ax: Axes | None = None,
+) -> tuple[Figure, Axes, Line2D]:
+    nxn_repeats = list[int]()
+    energies = list[float]()
+    for calculator in calculators:
+        atom = get_calculator_atom(calculator)
+        energies.append(get_atom_potential_energy(atom))
+        nxn_repeats.append(get_nxn_repeats(atom))
+
+    return plot_data_comparison(
+        ("n_repeats", np.array(nxn_repeats), "times"),
+        ("Energy", np.array(energies), "J"),
+        ax=ax,
+    )
+
+
 def get_slab_calculator(
     atoms: Atoms,
     parameters: SlabOptimizationParams,
@@ -118,14 +143,13 @@ def get_surface(
 ) -> Atoms:
     n_layer = n_free_layer + n_fixed_layer
     atoms = cast(Atoms, surface(atom, slab_direction, n_layer, 0))
-    positions = atoms.positions  # type: ignore for now
-    print(positions)  # type: ignore haha
     height_per_layer = _get_height_per_layer(atom, slab_direction)
     add_vacuum(atoms, n_vacuum_layer * height_per_layer)
 
     atoms.set_constraint(  # type: ignore bad lib
         _get_constraints(atoms, n_free_layer),
     )
+
     return atoms
 
 
@@ -203,18 +227,23 @@ def plot_displacement_against_n_free_layer(
 ) -> tuple[Figure, Axes, Line2D]:
     """Plot displacement of free atoms from it's initial position."""
     displacement = list[float]()
-    n_free_layer = list[int]()
+    n_free_layers = list[int]()
     for calculator in calculators:
         atom = get_calculator_atom(calculator)
 
         displacement.append(
             get_atom_displacement(atom, layer_idx),
         )
-        # TODO fix potential bugs with data
-        n_free_layers = len(atom.constraints[1].index)  # type: ignore bad lin
-        n_free_layer.append(n_free_layers)
+        fixed_layers = set[int]()
+        for constraint in atom.constraints:  # type: ignore bad lib
+            if isinstance(constraint, FixAtoms):
+                fixed_layers.update(constraint.index)  # type: ignore bad lib
+        n_fixed_layer = len(fixed_layers)
+        n_tot_layer = get_n_slab_layer(atom)
+        n_free_layers.append(n_tot_layer - n_fixed_layer)
+
     fig, ax, line = plot_data_comparison(
-        ("N Free Layers", np.array(n_free_layer), None),
+        ("N Free Layers", np.array(n_free_layers), None),
         ("Displacement", np.array(displacement), "m"),
         ax=ax,
     )
