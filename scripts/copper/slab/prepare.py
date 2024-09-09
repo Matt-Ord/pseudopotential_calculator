@@ -27,13 +27,13 @@ VACUUM_LAYER_PATH = Path("data/copper/slab/vacuum_layer")
 FREE_LAYER_PATH = Path("data/copper/slab/free_layer")
 
 
-def _prepare_vacuum_layer_convergence(atom: Atoms, data_path: Path) -> None:
+def _prepare_vacuum_layer_convergence(atoms: Atoms, data_path: Path) -> None:
     calculators = list[Castep]()
     prepare_clean_directory(data_path)
 
     for n_vacuum_layer in range(1, 9):
         slab_copper = get_surface(
-            atom,
+            atoms,
             (1, 1, 1),
             n_fixed_layer=5,
             n_vacuum_layer=n_vacuum_layer,
@@ -52,13 +52,13 @@ def _prepare_vacuum_layer_convergence(atom: Atoms, data_path: Path) -> None:
     maybe_copy_files_to_hpc(data_path, PosixPath(data_path.as_posix()))
 
 
-def _prepare_free_layer_convergence(atom: Atoms, data_path: Path) -> None:
+def _prepare_free_layer_convergence(atoms: Atoms, data_path: Path) -> None:
     calculators = list[Castep]()
     prepare_clean_directory(data_path)
     for n_free_layer in range(1, 6):
         n_fixed_layer = n_free_layer + 1
         slab_copper = get_surface(
-            atom,
+            atoms,
             (1, 1, 1),
             n_fixed_layer=n_fixed_layer,
             n_free_layer=n_free_layer,
