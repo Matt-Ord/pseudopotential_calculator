@@ -32,10 +32,10 @@ def _analyze_convergence_with_n_free_layer() -> None:
     maybe_copy_files_from_hpc(data_path, data_path)
     calculators = load_all_calculators(data_path)
     fig, ax = get_figure(None)
-    for layer in range(1, 6):
+    for layer in range(6):
         _, _, line = plot_displacement_against_n_free_layer(
             calculators,
-            layer,
+            -(layer + 1),
             ax=ax,
         )
         line.set_label(f"layer {layer}")
@@ -45,5 +45,5 @@ def _analyze_convergence_with_n_free_layer() -> None:
 
 
 if __name__ == "__main__":
-    _analyze_convergence_with_n_vacuum_layer()
     _analyze_convergence_with_n_free_layer()
+    _analyze_convergence_with_n_vacuum_layer()
