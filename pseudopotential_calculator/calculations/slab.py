@@ -41,7 +41,7 @@ def _get_heights_sorted(atom: Atoms) -> np.ndarray[Any, np.dtype[np.float64]]:
 
 def get_n_th_slab_layer_height(atom: Atoms, n_th_layer: int) -> float:
     heights = _get_heights_sorted(atom)
-    return heights[n_th_layer - 1]
+    return heights[n_th_layer]
 
 
 def get_height_per_slab_layer(atom: Atoms) -> float:
@@ -54,11 +54,6 @@ def get_height_per_slab_layer(atom: Atoms) -> float:
 def get_n_slab_layer(atoms: Atoms) -> int:
     heights = _get_heights_sorted(atoms)
     return len(heights)
-
-
-def get_top_position(atoms: Atoms) -> list[float]:
-    positions = atoms.positions  # type: ignore bad lib
-    return max(positions, key=lambda x: x[2])  # type: ignore bad lib
 
 
 def get_slab_width(atoms: Atoms) -> int:
@@ -82,7 +77,7 @@ def plot_energy_against_slab_width(
         width.append(get_slab_width(atom))
 
     return plot_data_comparison(
-        ("n_repeats", np.array(width), "times"),
+        ("width", np.array(width), "atom_wide"),
         ("Energy", np.array(energies), "J"),
         ax=ax,
     )
