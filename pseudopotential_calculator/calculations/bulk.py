@@ -43,9 +43,12 @@ def get_bulk_optimization_calculator(
     calculator.param.cut_off_energy = parameters.cut_off_energy
     calculator.param.spin_polarized = parameters.spin_polarized
     calculator.cell.kpoint_mp_grid = parameters.kpoint_mp_grid
+    calculator.param.max_scf_cycles = parameters.max_scf_cycles
 
     # Prevent the bulk cell from rotating
     calculator.cell.cell_constraints = "1 1 1\n0 0 0"
+    calculator.cell.symmetry_generate = True
+
     calculator.task = "GeometryOptimization"
 
     calculator.set_atoms(atoms)  # type: ignore unknown

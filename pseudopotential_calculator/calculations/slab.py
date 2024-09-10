@@ -95,7 +95,9 @@ def get_slab_calculator(
     calculator.param.xc_functional = parameters.xc_functional
     calculator.param.cut_off_energy = parameters.cut_off_energy
     calculator.param.spin_polarized = parameters.spin_polarized
+    calculator.param.max_scf_cycles = parameters.max_scf_cycles
     calculator.cell.kpoint_mp_grid = parameters.kpoint_mp_grid
+    calculator.cell.symmetry_generate = True
 
     # Prevent the bulk cell from rotating
     calculator.cell.cell_constraints = "0 0 0\n0 0 0"
@@ -133,7 +135,7 @@ def _get_constraints(
     n_free_layer: int,
 ) -> list[FixAtoms | FixedLine]:
     heights = _get_heights_sorted(atoms)
-    sorted_indices = np.argsort(heights)
+    sorted_indices = np.argsort(heights)[::-1]
 
     free_layer_indices = [i for i in sorted_indices if i < n_free_layer]
     fixed_layer_indices = [i for i in sorted_indices if i >= n_free_layer]

@@ -23,6 +23,7 @@ class OptimizationParamsBase(ABC):
         kw_only=True,
     )  # Adjusted to str for generalization
     spin_polarized: bool = field(default=False, kw_only=True)
+    max_scf_cycles: int = 30
 
     @property
     @abstractmethod
