@@ -2,7 +2,14 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Self
+from typing import TYPE_CHECKING, Self
+
+if TYPE_CHECKING:
+    from ase import Atoms
+
+
+def repeat_cell(cell: Atoms, amount: tuple[int, int, int]) -> Atoms:
+    return cell.repeat(amount)  # type: ignore bad lib
 
 
 @dataclass

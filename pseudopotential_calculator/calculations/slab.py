@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Literal, Self, cast
 
 import numpy as np
-from ase import Atom, Atoms
+from ase import Atoms
 from ase.build import (
     add_vacuum,  # type: ignore bad library
     surface,  # type: ignore bad library
@@ -34,40 +34,55 @@ class SlabOptimizationParams(OptimizationParamsBase):
         return f"{self.n_k_points} {self.n_k_points} {1}"
 
 
-def repeat_slab(slab: Atoms, amount: tuple[int, int, int]) -> Atoms:
-    return slab.repeat(amount)  # type: ignore bad lib
+def _get_heights_sorted(atom: Atoms) -> np.ndarray[Any, np.dtype[np.float64]]:
+    heights = cast(np.ndarray[Any, np.dtype[np.float64]], atom.positions[:, 2])  # type: ignore bad lib
+    return np.unique(heights)[::-1]
 
 
-def add_atom_onto_slab(atom: Atom, slab: Atoms) -> Atoms:
-    slab.append(atom)  # type: ignore bad lib
-    return slab
+def get_n_th_slab_layer_height(atom: Atoms, n_th_layer: int) -> float:
+    heights = _get_heights_sorted(atom)
+    return heights[n_th_layer - 1]
 
 
-def get_top_position(atom: Atoms) -> list[float]:
-    positions = atom.positions  # type: ignore bad lib
+def get_height_per_slab_layer(atom: Atoms) -> float:
+    _get_heights_sorted(atom)
+    heights = _get_heights_sorted(atom)
+    sorted_heights = np.unique(heights)[::-1]
+    return sorted_heights[-2]
+
+
+def get_n_slab_layer(atoms: Atoms) -> int:
+    heights = _get_heights_sorted(atoms)
+    return len(heights)
+
+
+def get_top_position(atoms: Atoms) -> list[float]:
+    positions = atoms.positions  # type: ignore bad lib
     return max(positions, key=lambda x: x[2])  # type: ignore bad lib
 
 
-def get_nxn_repeats(atom: Atoms) -> int:
-    n_slab_atoms = len(atom.positions) - 1  # type: ignore bad lib
-    n_atoms_per_repeat = get_n_slab_layer(atom) - 1
+def get_slab_width(atoms: Atoms) -> int:
+    # n_slab_atoms / n_atoms_per_repeat gives the number of slab units set to be repeated.
+    # take square root to get width since the repeat s set to be the same in x and y directions
+    n_slab_atoms = len(atoms.positions) - 1  # type: ignore bad lib
+    n_atoms_per_repeat = get_n_slab_layer(atoms) - 1
     return np.sqrt(round(n_slab_atoms / n_atoms_per_repeat))
 
 
-def plot_energy_against_nxn_slab(
+def plot_energy_against_slab_width(
     calculators: list[Castep],
     *,
     ax: Axes | None = None,
 ) -> tuple[Figure, Axes, Line2D]:
-    nxn_repeats = list[int]()
+    width = list[int]()
     energies = list[float]()
     for calculator in calculators:
         atom = get_calculator_atom(calculator)
         energies.append(get_atom_potential_energy(atom))
-        nxn_repeats.append(get_nxn_repeats(atom))
+        width.append(get_slab_width(atom))
 
     return plot_data_comparison(
-        ("n_repeats", np.array(nxn_repeats), "times"),
+        ("n_repeats", np.array(width), "times"),
         ("Energy", np.array(energies), "J"),
         ax=ax,
     )
@@ -162,28 +177,6 @@ def _get_n_vacuum_layers_from_slab(atom: Atoms) -> float:
     vacuum_height = cell_height - slab_height
 
     return vacuum_height / height_per_layer
-
-
-def _get_heights_sorted(atom: Atoms) -> np.ndarray[Any, np.dtype[np.float64]]:
-    heights = cast(np.ndarray[Any, np.dtype[np.float64]], atom.positions[:, 2])  # type: ignore bad lib
-    return np.unique(heights)[::-1]
-
-
-def get_n_th_slab_layer_height(atom: Atoms, n_th_layer: int) -> float:
-    heights = _get_heights_sorted(atom)
-    return heights[n_th_layer - 1]
-
-
-def get_height_per_slab_layer(atom: Atoms) -> float:
-    _get_heights_sorted(atom)
-    heights = _get_heights_sorted(atom)
-    sorted_heights = np.unique(heights)[::-1]
-    return sorted_heights[-2]
-
-
-def get_n_slab_layer(atom: Atoms) -> int:
-    heights = _get_heights_sorted(atom)
-    return len(heights)
 
 
 def plot_energy_against_n_vacuum_layer(
