@@ -177,11 +177,11 @@ def _prepare_energy_map(
 
 
 if __name__ == "__main__":
-    # bulk_config = CastepConfig(Path("data/copper/bulk/k_points_WC/bulk_10"), "bulk")
-    # bulk_copper = load_calculator_atoms(bulk_config)
+    bulk_config = CastepConfig(Path("data/copper/bulk/k_points_WC/bulk_10"), "bulk")
+    bulk_copper = load_calculator_atoms(bulk_config)
 
-    # _prepare_vacuum_layer_convergence(bulk_copper, VACUUM_LAYER_PATH)
-    # _prepare_slab_width_convergence(bulk_copper, SLAB_WIDTH_PATH)
+    _prepare_vacuum_layer_convergence(bulk_copper, VACUUM_LAYER_PATH)
+    _prepare_slab_width_convergence(bulk_copper, SLAB_WIDTH_PATH)
 
     slab_config = CastepConfig(
         Path("data/copper/slab/free_layer/slab_3_free_layer"),
