@@ -10,9 +10,9 @@ from pseudopotential_calculator.castep import (
 from pseudopotential_calculator.scripting import maybe_copy_files_from_hpc
 from pseudopotential_calculator.util import save_fig
 
-VACUUM_LAYER_PATH = PosixPath("data/copper/sodium/vacuum_layer")
-SLAB_WIDTH_PATH = PosixPath("data/copper/sodium/width")
-ENERGY_MAP_PATH = PosixPath("data/copper/sodium/energy_map")
+VACUUM_LAYER_PATH = PosixPath("data/copper/lithium/vacuum_layer")
+SLAB_WIDTH_PATH = PosixPath("data/copper/lithium/width")
+ENERGY_MAP_PATH = PosixPath("data/copper/lithium/energy_map")
 SAVE_DIR = Path(__file__).parent / "figures"
 
 

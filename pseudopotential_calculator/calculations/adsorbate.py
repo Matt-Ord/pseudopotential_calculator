@@ -1,21 +1,16 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal, Self, cast
+from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 import numpy as np
 from ase import Atom, Atoms
 from matplotlib import cm
 
-from pseudopotential_calculator.calculations.generic import (
-    OptimizationParamsBase,
-    repeat_cell,
-)
-from pseudopotential_calculator.calculations.slab import get_n_th_slab_layer_height
+from pseudopotential_calculator.atoms import Vector, get_basis_vectors, repeat_cell
+from pseudopotential_calculator.calculations.slab import get_height_of_layer
 from pseudopotential_calculator.castep import (
-    CastepConfig,
     get_calculator_atom,
-    get_default_calculator,
 )
 
 if TYPE_CHECKING:
@@ -23,80 +18,67 @@ if TYPE_CHECKING:
     from matplotlib.figure import Figure
 
 
-class AdsorbateOptimizationParams(OptimizationParamsBase):
-    """Parameters of a adsorbate calculation."""
-
-    @property
-    def kpoint_mp_grid(self: Self) -> str:
-        return f"{self.n_k_points} {self.n_k_points} {1}"
-
-
-def get_adsorbate_optimization_calculator(
-    atoms: Atoms,
-    parameters: AdsorbateOptimizationParams,
-    config: CastepConfig,
-    task: Literal["Energy", "GeometryOptimization"] = "Energy",
-) -> Castep:
-    calculator = get_default_calculator(config)
-
-    calculator.param.xc_functional = parameters.xc_functional
-    calculator.param.cut_off_energy = parameters.cut_off_energy
-    calculator.param.spin_polarized = parameters.spin_polarized
-    calculator.cell.kpoint_mp_grid = parameters.kpoint_mp_grid
-
-    # Prevent the adsorbate cell from rotating
-    calculator.cell.cell_constraints = "1 1 1\n0 0 0"
-    calculator.task = task
-
-    calculator.set_atoms(atoms)  # type: ignore unknown
-    # Temporary fix for bug in ase
-    atoms.calc = calculator
-    return calculator
-
-
-def get_top_position(atoms: Atoms) -> list[float]:
+def get_top_position(atoms: Atoms) -> tuple[float, float, float]:
     positions = atoms.positions  # type: ignore bad lib
-    return max(positions, key=lambda x: x[2])  # type: ignore bad lib
+    return tuple(max(positions, key=lambda x: x[2]))  # type: ignore bad lib
 
 
-def get_top_layer_z_vector(atoms: Atoms) -> list[float]:
-    z = get_n_th_slab_layer_height(atoms, 0)
-    return [0, 0, z]
+def get_top_layer_z_vector(atoms: Atoms) -> tuple[float, float, float]:
+    z = get_height_of_layer(atoms, 0)
+    return (0, 0, z)
 
 
-def prepare_na_atom(
-    slab_position: list[float],
-    rel_position: list[float] | None = None,
+def get_adsorbate_position(
+    slab_position: tuple[float, float, float],
+    relative_height: float | None = None,
+) -> tuple[float, float, float]:
+    if relative_height is None:
+        relative_height = 1.0
+    return (
+        slab_position[0],
+        slab_position[1],
+        slab_position[2] + relative_height,
+    )
+
+
+def prepare_adsorbate(
+    adsorbate: str,
+    position: tuple[float, float, float],
 ) -> Atom:
-    if rel_position is None:
-        rel_position = [0, 0, 1.0]
-    na_position = [slab + rel for slab, rel in zip(slab_position, rel_position)]
-    return Atom("Na", position=na_position)
+    return Atom(adsorbate, position)
 
 
-def add_atom_onto_slab(atom: Atom, slab: Atoms) -> Atoms:
-    slab.append(atom)  # type: ignore bad lib
+def get_slab_with_adsorbate(atom: Atom, slab: Atoms) -> Atoms:
+    slab.append(atom)  # type: ignore bad lib)
     return slab
 
 
-def prepare_adsorbate(atom: Atom, slab: Atoms, width: int) -> Atoms:
+def prepare_slab_with_adsorbate(atom: Atom, slab: Atoms, width: int) -> Atoms:
     repeated_slab = repeat_cell(slab, (width, width, 1))
-    add_atom_onto_slab(atom, repeated_slab)
-    return repeated_slab
+    return get_slab_with_adsorbate(atom, repeated_slab)
 
 
-def get_basis_vectors(slab: Atoms, n: int = 6) -> list[list[float]]:
-    lattice_parameters = cast(list[list[float]], slab.cell)
-    x = lattice_parameters[0]
-    y = lattice_parameters[1]
-    return [[i / n for i in x], [i / n for i in y]]
+def get_scaled_basis_vectors(
+    atoms: Atoms,
+    *,
+    scale_factor: int = 6,
+) -> tuple[Vector, Vector, Vector]:
+    basis_vectors = get_basis_vectors(atoms)
+    x = basis_vectors[0]
+    y = basis_vectors[1]
+    z = basis_vectors[2]
+    return (
+        Vector(i / scale_factor for i in x),
+        Vector(i / scale_factor for i in y),
+        Vector(i / scale_factor for i in z),
+    )
 
 
 def plot_energy_against_position(
     calculators: list[Castep],
 ) -> Figure:
     """Plot displacement of free atoms from it's initial position."""
-    positions = list[list[float]]()
+    positions = list[tuple[float, float, float]]()
     energies = list[float]()
     for calculator in calculators:
         atom = get_calculator_atom(calculator)

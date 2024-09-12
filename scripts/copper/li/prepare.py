@@ -36,9 +36,9 @@ from pseudopotential_calculator.util import (
 if TYPE_CHECKING:
     from ase import Atoms
 
-ENERGY_MAP_PATH = Path("data/copper/sodium/energy_map")
-VACUUM_LAYER_PATH = Path("data/copper/sodium/vacuum_layer")
-SLAB_WIDTH_PATH = Path("data/copper/sodium/width")
+ENERGY_MAP_PATH = Path("data/copper/lithium/energy_map")
+VACUUM_LAYER_PATH = Path("data/copper/lithium/vacuum_layer")
+SLAB_WIDTH_PATH = Path("data/copper/lithium/width")
 
 
 def _prepare_vacuum_layer_convergence(atoms: Atoms, data_path: Path) -> None:
@@ -62,9 +62,9 @@ def _prepare_vacuum_layer_convergence(atoms: Atoms, data_path: Path) -> None:
             slab_position,
             adsorbate_height,
         )
-        na_atom = prepare_adsorbate("Na", adsorbate_position)
+        li_atom = prepare_adsorbate("li", adsorbate_position)
 
-        slab_with_adsorbate = get_slab_with_adsorbate(na_atom, slab)
+        slab_with_adsorbate = get_slab_with_adsorbate(li_atom, slab)
 
         config = CastepConfig(
             data_path / f"slab_{n_vacuum_layer}_vacuum_layer",
@@ -101,10 +101,10 @@ def _prepare_slab_width_convergence(
         slab_position,
         adsorbate_height,
     )
-    na_atom = prepare_adsorbate("Na", adsorbate_position)
+    li_atom = prepare_adsorbate("Li", adsorbate_position)
 
     for width in range(1, 9):
-        slab_with_adsorbate = prepare_slab_with_adsorbate(na_atom, slab, width)
+        slab_with_adsorbate = prepare_slab_with_adsorbate(li_atom, slab, width)
         config = CastepConfig(
             data_path / f"width_{width}",
             "slab_width",
@@ -160,8 +160,8 @@ def _prepare_energy_map(
             )
 
             adsorbate_position = get_adsorbate_position(slab_position, k)
-            na_atom = prepare_adsorbate("Na", adsorbate_position)
-            adsorbate = prepare_slab_with_adsorbate(na_atom, slab, width)
+            li_atom = prepare_adsorbate("Li", adsorbate_position)
+            adsorbate = prepare_slab_with_adsorbate(li_atom, slab, width)
 
             config = CastepConfig(
                 data_path / f"{i}x{j}x{k}",

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import os
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Self, cast
+from typing import Literal, Self, cast
 
 from ase import Atoms
 from ase.calculators.castep import (
@@ -24,6 +24,49 @@ class CastepConfig:
 
     directory: Path
     label: str
+
+
+@dataclass
+class CastepParams:
+    """class for castep parameters."""
+
+    symmetry_generate: bool = field(default=True, kw_only=True)
+    n_k_points: tuple[int, int, int] = field(default=(1, 1, 1), kw_only=True)
+    cut_off_energy: float = field(default=600, kw_only=True)
+    xc_functional: str = field(
+        default="PBE",
+        kw_only=True,
+    )
+    spin_polarized: bool = field(default=False, kw_only=True)
+    max_scf_cycles: int = 30
+
+    @property
+    def kpoint_mp_grid(self: Self) -> str:
+        return f"{self.n_k_points[0]} {self.n_k_points[1]} {self.n_k_points[2]}"
+
+
+def get_calculator(
+    atoms: Atoms,
+    parameters: CastepParams,
+    config: CastepConfig,
+    task: Literal["Energy", "GeometryOptimization"] = "Energy",
+) -> Castep:
+    calculator = get_default_calculator(config)
+    calculator.task = task
+
+    calculator.param.xc_functional = parameters.xc_functional
+    calculator.param.cut_off_energy = parameters.cut_off_energy
+    calculator.param.spin_polarized = parameters.spin_polarized
+    calculator.param.max_scf_cycles = parameters.max_scf_cycles
+    calculator.cell.kpoint_mp_grid = parameters.kpoint_mp_grid
+    calculator.cell.symmetry_generate = True
+    # Prevent the adsorbate cell from rotating
+    calculator.cell.cell_constraints = "1 1 1\n0 0 0"
+
+    calculator.set_atoms(atoms)  # type: ignore unknown
+    # Temporary fix for bug in ase
+    atoms.calc = calculator
+    return calculator
 
 
 def get_calculator_directory(calculator: Castep) -> Path:

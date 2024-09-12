@@ -5,12 +5,12 @@ from typing import TYPE_CHECKING
 
 from ase.build import bulk  # type: ignore bad library
 
-from pseudopotential_calculator.calculations.bulk import (
-    BulkOptimizationParams,
-    XCFunctional,
-    get_bulk_optimization_calculator,
+from pseudopotential_calculator.castep import (
+    Castep,
+    CastepConfig,
+    CastepParams,
+    get_calculator,
 )
-from pseudopotential_calculator.castep import Castep, CastepConfig
 from pseudopotential_calculator.hpc import (
     prepare_calculator_with_submit_script,
     prepare_submit_all_script,
@@ -25,6 +25,10 @@ from pseudopotential_calculator.util import (
 if TYPE_CHECKING:
     from ase import Atoms
 
+    from pseudopotential_calculator.calculations.bulk import (
+        XCFunctional,
+    )
+
 
 def _prepare_k_points_convergence(
     atom: Atoms,
@@ -36,14 +40,15 @@ def _prepare_k_points_convergence(
     calculators = list[Castep]()
     prepare_clean_directory(data_path)
 
-    for n_k_points in range(1, 11):
+    for n_k_point in range(1, 11):
+        n_k_points = (n_k_point, n_k_point, n_k_point)
         config = CastepConfig(data_path / f"bulk_{n_k_points}", "bulk")
-        params = BulkOptimizationParams(
+        params = CastepParams(
             n_k_points=n_k_points,
             xc_functional=xc_functional,
             spin_polarized=spin_polarized,
         )
-        calculator = get_bulk_optimization_calculator(atom, params, config)
+        calculator = get_calculator(atom, params, config)
         prepare_calculator_with_submit_script(calculator)
 
         calculators.append(calculator)
@@ -58,8 +63,8 @@ def _prepare_cutoff_energy_convergence(atom: Atoms, data_path: Path) -> None:
 
     for cutoff_energy in range(300, 750, 50):
         config = CastepConfig(data_path / f"bulk_{cutoff_energy}", "bulk")
-        params = BulkOptimizationParams(n_k_points=11, cut_off_energy=cutoff_energy)
-        calculator = get_bulk_optimization_calculator(atom, params, config)
+        params = CastepParams(n_k_points=(11, 11, 11), cut_off_energy=cutoff_energy)
+        calculator = get_calculator(atom, params, config)
         prepare_calculator_with_submit_script(calculator)
 
         calculators.append(calculator)
