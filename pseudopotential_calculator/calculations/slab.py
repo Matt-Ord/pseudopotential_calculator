@@ -134,21 +134,6 @@ def _get_constraints(
     ]
 
 
-def _get_constraints(
-    atoms: Atoms,
-    n_free_layer: int,
-) -> list[FixAtoms | FixedLine]:
-    heights = _get_layer_heights(atoms)
-    indices = np.argsort(heights)[::-1]
-
-    free_layer_indices = [i for i in indices if i < n_free_layer]
-    fixed_layer_indices = [i for i in indices if i >= n_free_layer]
-    return [
-        FixAtoms(fixed_layer_indices),
-        FixedLine(free_layer_indices, [0, 0, 1]),  # type: ignore bad lib
-    ]
-
-
 def _get_height_per_layer(
     atoms: Atoms,
     slab_direction: tuple[int, int, int],
