@@ -71,6 +71,20 @@ squeue -u username --start
 scancel job_id
 # To view your balance
 mybalance
+# To get an overview of the currently running jobs on the HPC
+squeue  | awk '
+BEGIN {
+    abbrev["R"]="(Running)"
+    abbrev["PD"]="(Pending)"
+    abbrev["CG"]="(Completing)"
+    abbrev["F"]="(Failed)"
+}
+NR>1 {a[$5]++}
+END {
+    for (i in a) {
+        printf "%-2s %-12s %d\n", i, abbrev[i], a[i]
+    }
+}'
 ```
 
 The following bash commands are also generally useful
