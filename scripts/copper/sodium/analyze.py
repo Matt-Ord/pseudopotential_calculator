@@ -38,4 +38,4 @@ def _analyze_convergence_with_slab_width(data_path: PosixPath) -> None:
 
 if __name__ == "__main__":
     _analyze_convergence_with_slab_width(SLAB_WIDTH_PATH)
-    _analyze_convergence_with_n_vacuum_layer(VACUUM_LAYER_PATH)
+    # _analyze_convergence_with_n_vacuum_layer(VACUUM_LAYER_PATH)
