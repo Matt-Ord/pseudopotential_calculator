@@ -72,7 +72,7 @@ def plot_data_comparison(
 
     ax.set_xlabel(_get_data_label(x_label, x_unit))  # type: ignore bad library
     ax.set_ylabel(_get_data_label(y_label, y_unit))  # type: ignore bad library
-    ax.set_title(f"{x_label} vs {y_label}")  # type: ignore bad library
+    ax.set_title(f"{y_label} vs {x_label}")  # type: ignore bad library
 
     return fig, ax, line
 
@@ -91,6 +91,11 @@ def plot_atoms(
         radii=radii,
         rotation=(f"{rotation[0]}x,{rotation[1]}y,{rotation[2]}z"),
     )
+
+    # Set axis labels with units
+    ax.set_xlabel("Å")  # type: ignore bad library
+    ax.set_ylabel("Å")  # type: ignore bad library
+
     return fig, ax
 
 

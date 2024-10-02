@@ -47,6 +47,7 @@ def _prepare_k_points_convergence(
             n_k_points=n_k_points,
             xc_functional=xc_functional,
             spin_polarized=spin_polarized,
+            length_constraints=(1, 1, 1),
         )
         calculator = get_calculator(atom, params, config)
         prepare_calculator_with_submit_script(calculator)

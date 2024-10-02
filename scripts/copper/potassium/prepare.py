@@ -4,14 +4,13 @@ from pathlib import Path, PosixPath
 from typing import TYPE_CHECKING
 
 import numpy as np
+from ase import Atom
 
+from pseudopotential_calculator.atoms import Adsorbate, add_vectors
 from pseudopotential_calculator.calculations.adsorbate import (
-    get_adsorbate_position,
-    get_scaled_basis_vectors,
-    get_slab_with_adsorbate,
-    get_top_layer_z_vector,
+    append_atom_to_atoms,
     get_top_position,
-    prepare_adsorbate,
+    prepare_adsorbate_positions,
     prepare_slab_with_adsorbate,
 )
 from pseudopotential_calculator.calculations.slab import (
@@ -36,41 +35,50 @@ from pseudopotential_calculator.util import (
 if TYPE_CHECKING:
     from ase import Atoms
 
-ENERGY_MAP_PATH = Path("data/copper/lithium/energy_map")
-VACUUM_LAYER_PATH = Path("data/copper/lithium/vacuum_layer")
-SLAB_WIDTH_PATH = Path("data/copper/lithium/width")
+
+adsorbate_config = Adsorbate(
+    name="potassium",
+    symbol="K",
+    height=2.0,
+    cut_off_energy=600,
+)
+
+ENERGY_MAP_PATH = Path(f"data/copper/{adsorbate_config.name}/energy_map")
+VACUUM_HEIGHT_PATH = Path(f"data/copper/{adsorbate_config.name}/vacuum_height")
+SLAB_WIDTH_PATH = Path(f"data/copper/{adsorbate_config.name}/width")
 
 
-def _prepare_vacuum_layer_convergence(atoms: Atoms, data_path: Path) -> None:
+def _prepare_vacuum_height_convergence(atoms: Atoms, data_path: Path) -> None:
     calculators = list[Castep]()
     prepare_clean_directory(data_path)
 
-    adsorbate_height = 1.0
-
-    for n_vacuum_layer in range(1, 9):
+    for vacuum_height in range(1, 10):
         slab = get_surface(
             atoms,
             (1, 1, 1),
             n_fixed_layer=4,
             n_free_layer=3,
-            n_vacuum_layer=n_vacuum_layer,
-            adsorbate_height=adsorbate_height,
+            vacuum_height=vacuum_height + adsorbate_config.height,
         )
 
         slab_position = get_top_position(slab)
-        adsorbate_position = get_adsorbate_position(
+        adsorbate_position = add_vectors(
             slab_position,
-            adsorbate_height,
+            (0, 0, adsorbate_config.height),
         )
-        li_atom = prepare_adsorbate("li", adsorbate_position)
+        adsorbate_atom = Atom(adsorbate_config.symbol, adsorbate_position)
 
-        slab_with_adsorbate = get_slab_with_adsorbate(li_atom, slab)
+        slab_with_adsorbate = append_atom_to_atoms(adsorbate_atom, slab)
 
         config = CastepConfig(
-            data_path / f"slab_{n_vacuum_layer}_vacuum_layer",
-            "slab",
+            data_path / f"{vacuum_height}",
+            f"{adsorbate_config.symbol}_{vacuum_height}_vacuum",
         )
-        params = CastepParams(n_k_points=(12, 12, 1), xc_functional="WC")
+        params = CastepParams(
+            n_k_points=(12, 12, 1),
+            xc_functional="WC",
+            cut_off_energy=adsorbate_config.cut_off_energy,
+        )
         calculator = get_calculator(slab_with_adsorbate, params, config)
         prepare_calculator_with_submit_script(calculator)
 
@@ -85,34 +93,33 @@ def _prepare_slab_width_convergence(
 ) -> None:
     calculators = list[Castep]()
     prepare_clean_directory(data_path)
-    adsorbate_height = 1.0
 
     slab = get_surface(
         atoms,
         (1, 1, 1),
         n_fixed_layer=4,
         n_free_layer=3,
-        n_vacuum_layer=5,
-        adsorbate_height=adsorbate_height,
+        vacuum_height=10 + adsorbate_config.height,
     )
 
     slab_position = get_top_position(slab)
-    adsorbate_position = get_adsorbate_position(
+    adsorbate_position = add_vectors(
         slab_position,
-        adsorbate_height,
+        (0, 0, adsorbate_config.height),
     )
-    li_atom = prepare_adsorbate("Li", adsorbate_position)
+    adsorbate_atom = Atom(adsorbate_config.symbol, adsorbate_position)
 
-    for width in range(1, 9):
-        slab_with_adsorbate = prepare_slab_with_adsorbate(li_atom, slab, width)
+    for width in range(1, 8):
+        slab_with_adsorbate = prepare_slab_with_adsorbate(adsorbate_atom, slab, width)
         config = CastepConfig(
-            data_path / f"width_{width}",
-            "slab_width",
+            data_path / f"{width}",
+            f"{adsorbate_config.symbol}_{width}_width",
         )
         params = CastepParams(
             n_k_points=(int(np.ceil(12 / width)), int(np.ceil(12 / width)), 1),
             xc_functional="WC",
             max_scf_cycles=100,
+            cut_off_energy=adsorbate_config.cut_off_energy,
         )
         calculator = get_calculator(slab_with_adsorbate, params, config)
         prepare_calculator_with_submit_script(calculator)
@@ -132,45 +139,28 @@ def _prepare_energy_map(
 ) -> None:
     calculators = list[Castep]()
     prepare_clean_directory(data_path)
-
-    basis_vectors = get_scaled_basis_vectors(slab, scale_factor=scale_factor)
-    z = get_top_layer_z_vector(slab)
-    x = basis_vectors[0]
-    y = basis_vectors[1]
-
-    i_vals, j_vals, k_vals = np.meshgrid(
-        np.arange(scale_factor + 1),
-        np.arange(scale_factor + 1),
+    adsorbate_positions = prepare_adsorbate_positions(
+        slab,
         heights_above_surface,
-        indexing="ij",
+        scale_factor=scale_factor,
     )
+    for position in adsorbate_positions:
+        adsorbate_atom = Atom(adsorbate_config.symbol, position)
+        adsorbate = prepare_slab_with_adsorbate(adsorbate_atom, slab, width)
 
-    i_flat = i_vals.ravel()
-    j_flat = j_vals.ravel()
-    k_flat = k_vals.ravel()
-
-    for idx in range(len(i_flat)):
-        i, j, k = i_flat[idx], j_flat[idx], k_flat[idx]
-
-        if i >= j:
-            slab_position = (
-                i * x[0] + j * y[0] + z[0],
-                i * x[1] + j * y[1] + z[1],
-                i * x[2] + j * y[2] + z[2],
-            )
-
-            adsorbate_position = get_adsorbate_position(slab_position, k)
-            li_atom = prepare_adsorbate("Li", adsorbate_position)
-            adsorbate = prepare_slab_with_adsorbate(li_atom, slab, width)
-
-            config = CastepConfig(
-                data_path / f"{i}x{j}x{k}",
-                "energy_map",
-            )
-            params = CastepParams(n_k_points=(12, 12, 1), xc_functional="WC")
-            calculator = get_calculator(adsorbate, params, config)
-            prepare_calculator_with_submit_script(calculator)
-            calculators.append(calculator)
+        config = CastepConfig(
+            data_path / f"{round(position[0], 1)}x{round(position[1], 1)}x"
+            f"{round(position[2], 1)}",
+            f"{adsorbate_config.symbol}_energy_map",
+        )
+        params = CastepParams(
+            n_k_points=(12, 12, 1),
+            xc_functional="WC",
+            cut_off_energy=adsorbate_config.cut_off_energy,
+        )
+        calculator = get_calculator(adsorbate, params, config)
+        prepare_calculator_with_submit_script(calculator)
+        calculators.append(calculator)
 
     prepare_submit_all_script(calculators, data_path)
     maybe_copy_files_to_hpc(data_path, PosixPath(data_path.as_posix()))
@@ -180,19 +170,20 @@ if __name__ == "__main__":
     bulk_config = CastepConfig(Path("data/copper/bulk/k_points_WC/bulk_10"), "bulk")
     bulk_copper = load_calculator_atoms(bulk_config)
 
-    _prepare_vacuum_layer_convergence(bulk_copper, VACUUM_LAYER_PATH)
+    _prepare_vacuum_height_convergence(bulk_copper, VACUUM_HEIGHT_PATH)
     _prepare_slab_width_convergence(bulk_copper, SLAB_WIDTH_PATH)
 
     slab_config = CastepConfig(
-        Path("data/copper/slab/free_layer/slab_3_free_layer"),
-        "slab",
+        Path("data/copper/slab/free_layer/slab_4_free_layer"),
+        "slab_free_layer",
     )
     slab_copper = load_calculator_atoms(slab_config)
-    heights_above_surface = [1.0, 5.0]
+
+    heights_above_surface = [2.0, 5.0]
     _prepare_energy_map(
         slab_copper,
         ENERGY_MAP_PATH,
         heights_above_surface,
-        width=3,
+        width=2,
         scale_factor=6,
     )

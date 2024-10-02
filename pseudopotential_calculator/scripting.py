@@ -26,7 +26,7 @@ def prompt_for_decision(question: str, default: Literal["y", "n"] = "y") -> bool
 
 def maybe_copy_files_from_hpc(local_folder: Path, remote_folder: PosixPath) -> None:
     """Make use of the scp command to copy files from local to remote."""
-    skip = os.environ.get("SKIP_DOWNLOAD", False)
+    skip = os.environ.get("SKIP_DOWNLOAD", "false").lower() == "true"
     if skip or not prompt_for_decision("Copy files from HPC"):
         return
     copy_files_from_hpc(local_folder, remote_folder)
@@ -34,7 +34,7 @@ def maybe_copy_files_from_hpc(local_folder: Path, remote_folder: PosixPath) -> N
 
 def maybe_copy_files_to_hpc(local_folder: Path, remote_folder: PosixPath) -> None:
     """Make use of the scp command to copy files to local to remote."""
-    skip = os.environ.get("SKIP_UPLOAD", False)
+    skip = os.environ.get("SKIP_UPLOAD", "false").lower() == "true"
     if skip or not prompt_for_decision("Copy files to HPC"):
         return
     copy_files_to_hpc(local_folder, remote_folder)

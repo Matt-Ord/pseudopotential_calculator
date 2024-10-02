@@ -67,8 +67,14 @@ squeue -u username
 # NOTE: this does not take into account jobs ending early,
 # or other users jumping the queue
 squeue -u username --start
+# To submit a job
+sbatch submit.sh
 # To cancel a job
 scancel job_id
+# To see the detail of a job
+
+# To copy a certain job
+scp -r username@login.hpc.cam.ac.uk:/path/to/remote/folder/* /path/to/local/folder/
 # To view your balance
 mybalance
 # To get an overview of the currently running jobs on the HPC
@@ -85,6 +91,10 @@ END {
         printf "%-2s %-12s %d\n", i, abbrev[i], a[i]
     }
 }'
+
+# If the task reaches the time limit, set the following param equal to true in .param file and re-submit the .sh file to continue the calculation.
+CONTINUATION : default
+
 ```
 
 The following bash commands are also generally useful
@@ -99,9 +109,24 @@ ls -al
 # Make a file excecutable
 chmod u+x filename
 # Remove all files in data directory
+rm -rf data/*
+# Remove data directory
 rm -r data
 # make a directory at data/copper/bulk
 mkdir -p data/copper/bulk
+```
+
+Before downloading files from HPC, the following command can be run to delete all .check files inside specific directory (/path/to/folder)
+!!! the check files are for continuing the job if the time limit is reached. If a job is not finished this should be kept.
+
+```shell
+#find /path/to/folder -name "*.check" -type f -delete
+```
+
+Or the following command that delete all .check and .check_bak files inside the current directory
+
+```shell
+#find . \( -name "*.check" -o -name "*.check_bak" \) -type f -delete
 ```
 
 To upload files to the HPC, the scp command should be used inside the local terminal

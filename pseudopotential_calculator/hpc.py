@@ -183,7 +183,7 @@ def copy_files_to_hpc(local_folder: Path, remote_folder: PosixPath) -> None:
     command = [
         "scp",
         "-r",
-        f"{local_folder.absolute()}/*",
+        f"{local_folder.absolute()}",
         f"{username}@login.hpc.cam.ac.uk:{remote_folder_absolute.as_posix()}",
     ]
     subprocess.run(
@@ -195,14 +195,23 @@ def copy_files_to_hpc(local_folder: Path, remote_folder: PosixPath) -> None:
 
 
 def copy_files_from_hpc(local_folder: Path, remote_folder: PosixPath) -> None:
-    """Make use of the scp command to copy files from local to remote."""
+    """Copy files from a remote folder to a local folder using rsync.
+
+    Excludes files with extensions: .check, .check_bak.
+    """
     username = _get_hpc_username()
 
     remote_folder_absolute = _get_relative_hpc_path(remote_folder)
     command = [
-        "scp",
-        "-r",
-        f"{username}@login.hpc.cam.ac.uk:{remote_folder_absolute.as_posix()}/*",
+        "rsync",
+        "-avz",  # Archive mode, verbose, compress
+        "--exclude",
+        "*.check",  # Exclude .check files
+        "--exclude",
+        "*.check_bak",  # Exclude .check_bak files
+        "--exclude",
+        "7/",  # Exclude the '7' subdirectory
+        f"{username}@login.hpc.cam.ac.uk:{remote_folder_absolute.as_posix()}/",
         f"{local_folder.absolute()}/",
     ]
     subprocess.run(

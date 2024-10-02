@@ -74,8 +74,8 @@ def plot_cell_length_against_n_k_points(
         n_k_points.append(_get_n_k_points_from_calculator(calculator, direction))
 
     return plot_data_comparison(
-        ("N K Points", np.array(n_k_points), None),
-        ("Bond Length", np.array(bond_lengths), "m"),
+        ("N k Points", np.array(n_k_points), None),
+        ("Cell Length", np.array(bond_lengths), "Å"),
         ax=ax,
     )
 
@@ -93,8 +93,8 @@ def plot_energy_against_n_k_points(
         n_k_points.append(_get_n_k_points_from_calculator(calculator, direction))
 
     return plot_data_comparison(
-        ("N K Points", np.array(n_k_points), None),
-        ("Energy", np.array(energies), "J"),
+        ("N k Points", np.array(n_k_points), None),
+        ("Energy", np.array(energies), "eV"),
         ax=ax,
     )
 
@@ -113,8 +113,8 @@ def plot_energy_against_cutoff_energy(
         cutoff_energy.append(get_calculator_cutoff_energy(calculator))
 
     return plot_data_comparison(
-        ("Cutoff Energy", np.array(cutoff_energy), "J"),
-        ("Energy", np.array(energies), "J"),
+        ("Cutoff Energy", np.array(cutoff_energy), "eV"),
+        ("Energy", np.array(energies), "eV"),
         ax=ax,
     )
 
@@ -131,7 +131,7 @@ def plot_cell_length_against_cutoff_energy(
         cutoff_energy.append(get_calculator_cutoff_energy(calculator))
 
     return plot_data_comparison(
-        ("Cutoff Energy", np.array(cutoff_energy), "J"),
-        ("Cell Length", np.array(cell_length), r"$/AA$"),
+        ("Cutoff Energy", np.array(cutoff_energy), "eV"),
+        ("Cell Length", np.array(cell_length), "Å"),
         ax=ax,
     )

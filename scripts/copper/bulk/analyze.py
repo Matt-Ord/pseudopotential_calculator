@@ -52,7 +52,7 @@ def _analyze_energy_convergence_with_n_k_points(paths: list[PosixPath]) -> None:
         line.set_label(data_path.name)
 
     show_legend(ax)
-
+    fig.tight_layout()
     plot_name = "energy_against_n_k_points.png"
     save_fig(fig, SAVE_DIR / plot_name)
 

@@ -4,16 +4,22 @@ from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 import numpy as np
-from ase import Atom, Atoms
 from matplotlib import cm
 
-from pseudopotential_calculator.atoms import Vector, get_basis_vectors, repeat_cell
+from pseudopotential_calculator.atoms import (
+    Vector,
+    add_vectors,
+    append_atom_to_atoms,
+    get_basis_vectors,
+    repeat_cell,
+)
 from pseudopotential_calculator.calculations.slab import get_height_of_layer
 from pseudopotential_calculator.castep import (
     get_calculator_atom,
 )
 
 if TYPE_CHECKING:
+    from ase import Atom, Atoms
     from ase.calculators.castep import Castep
     from matplotlib.figure import Figure
 
@@ -23,42 +29,19 @@ def get_top_position(atoms: Atoms) -> tuple[float, float, float]:
     return tuple(max(positions, key=lambda x: x[2]))  # type: ignore bad lib
 
 
-def get_top_layer_z_vector(atoms: Atoms) -> tuple[float, float, float]:
+def _get_top_layer_z_vector(atoms: Atoms) -> tuple[float, float, float]:
     z = get_height_of_layer(atoms, 0)
     return (0, 0, z)
 
 
-def get_adsorbate_position(
-    slab_position: tuple[float, float, float],
-    relative_height: float | None = None,
-) -> tuple[float, float, float]:
-    if relative_height is None:
-        relative_height = 1.0
-    return (
-        slab_position[0],
-        slab_position[1],
-        slab_position[2] + relative_height,
-    )
-
-
-def prepare_adsorbate(
-    adsorbate: str,
-    position: tuple[float, float, float],
-) -> Atom:
-    return Atom(adsorbate, position)
-
-
-def get_slab_with_adsorbate(atom: Atom, slab: Atoms) -> Atoms:
-    slab.append(atom)  # type: ignore bad lib)
-    return slab
-
-
+# TODO add vacuum
+# do relatie till the end
 def prepare_slab_with_adsorbate(atom: Atom, slab: Atoms, width: int) -> Atoms:
     repeated_slab = repeat_cell(slab, (width, width, 1))
-    return get_slab_with_adsorbate(atom, repeated_slab)
+    return append_atom_to_atoms(atom, repeated_slab)
 
 
-def get_scaled_basis_vectors(
+def _get_scaled_basis_vectors(
     atoms: Atoms,
     *,
     scale_factor: int = 6,
@@ -101,3 +84,41 @@ def plot_energy_against_position(
     ax.set(xlabel=[], ylabel=[], zlabel=[])
 
     return fig
+
+
+def prepare_adsorbate_positions(
+    slab: Atoms,
+    heights_above_surface: list[float],
+    *,
+    scale_factor: int,
+) -> list[tuple[float, float, float]]:
+    adsorbate_positions = list[tuple[float, float, float]]()
+
+    basis_vectors = _get_scaled_basis_vectors(slab, scale_factor=scale_factor)
+    z = _get_top_layer_z_vector(slab)
+    x = basis_vectors[0]
+    y = basis_vectors[1]
+
+    i_vals, j_vals, k_vals = np.meshgrid(
+        np.arange(scale_factor + 1),
+        np.arange(scale_factor + 1),
+        heights_above_surface,
+        indexing="ij",
+    )
+
+    i_flat = i_vals.ravel()
+    j_flat = j_vals.ravel()
+    k_flat = k_vals.ravel()
+
+    for idx in range(len(i_flat)):
+        i, j, k = i_flat[idx], j_flat[idx], k_flat[idx]
+
+        if i >= j:
+            slab_position = (
+                i * x[0] + j * y[0] + z[0],
+                i * x[1] + j * y[1] + z[1],
+                i * x[2] + j * y[2] + z[2],
+            )
+            adsorbate_position = add_vectors(slab_position, (0, 0, k))
+            adsorbate_positions.append(adsorbate_position)
+    return adsorbate_positions
