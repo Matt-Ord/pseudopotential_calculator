@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import os
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Self, cast
+from typing import Literal, Self, cast
 
 from ase import Atoms
 from ase.calculators.castep import (
@@ -24,6 +24,64 @@ class CastepConfig:
 
     directory: Path
     label: str
+
+
+@dataclass
+class CastepParams:
+    """class for castep parameters."""
+
+    symmetry_generate: bool = field(default=False, kw_only=True)
+    n_k_points: tuple[int, int, int] = field(default=(1, 1, 1), kw_only=True)
+    cut_off_energy: float = field(default=600, kw_only=True)
+    xc_functional: str = field(
+        default="PBE",
+        kw_only=True,
+    )
+    spin_polarized: bool = field(default=False, kw_only=True)
+    max_scf_cycles: int = 30
+    length_constraints: tuple[int, int, int] = field(default=(0, 0, 0), kw_only=True)
+    angle_constraints: tuple[int, int, int] = field(default=(0, 0, 0), kw_only=True)
+    continuation: str = field(
+        default="default",
+        kw_only=True,
+    )
+
+    @property
+    def cell_constraints(self: Self) -> str:
+        return (
+            f"{self.length_constraints[0]} {self.length_constraints[1]} "
+            f"{self.length_constraints[2]}\n"
+            f"{self.angle_constraints[0]} {self.angle_constraints[1]} "
+            f"{self.angle_constraints[2]}"
+        )
+
+
+def get_calculator(
+    atoms: Atoms,
+    parameters: CastepParams,
+    config: CastepConfig,
+    task: Literal["Energy", "GeometryOptimization"] = "GeometryOptimization",
+) -> Castep:
+    calculator = get_default_calculator(config)
+    calculator.task = task
+
+    calculator.param.xc_functional = parameters.xc_functional
+    calculator.param.cut_off_energy = parameters.cut_off_energy
+    calculator.param.spin_polarized = parameters.spin_polarized
+    calculator.param.max_scf_cycles = parameters.max_scf_cycles
+    calculator.param.continuation = parameters.continuation
+    calculator.cell.kpoint_mp_grid = (
+        f"{parameters.n_k_points[0]}"
+        f"{parameters.n_k_points[1]} "
+        f"{parameters.n_k_points[2]}"
+    )
+    calculator.cell.symmetry_generate = parameters.symmetry_generate
+    calculator.cell.cell_constraints = parameters.cell_constraints
+
+    calculator.set_atoms(atoms)  # type: ignore unknown
+    # Temporary fix for bug in ase
+    atoms.calc = calculator
+    return calculator
 
 
 def get_calculator_directory(calculator: Castep) -> Path:
@@ -148,11 +206,9 @@ def get_default_calculator(
 
     # Don't prefix calculations with 0000
     calculator._track_output = False  # type: ignore only way # noqa: SLF001
-    calculator._try_reuse = True  # type: ignore only way # noqa: SLF001
     calculator._pedantic = True  # type: ignore only way # noqa: SLF001
     calculator._set_atoms = True  # type: ignore only way # noqa: SLF001
     calculator.param.num_dump_cycles = 0
-    calculator.param.reuse = True
     calculator.param.elec_energy_tol = 1e-06
     calculator.param.geom_energy_tol = 1e-05
     calculator.param.geom_disp_tol = 1e-03
@@ -162,6 +218,10 @@ def get_default_calculator(
 
 def prepare_calculator(calculator: Castep) -> None:
     calculator.prepare_input_files()  # type: ignore bad lib types
+
+
+def get_calculator_old_atoms(calculator: Castep) -> Atoms:
+    return cast(Atoms, calculator.__old_atoms)  # type: ignore bad lib # noqa: SLF001
 
 
 def load_calculator(config: CastepConfig) -> Castep:
@@ -176,6 +236,7 @@ def load_calculator(config: CastepConfig) -> Castep:
     with cell_path.open() as f:
         cell_atoms = cast(Atoms, read_castep_cell(f))
         calculator.cell = cell_atoms.calc.cell  # type: ignore bad lib type
+        calculator.__old_atoms = cell_atoms  # type: ignore modified originally not useful _old_atoms# noqa: SLF001
 
     calculator.push_oldstate()
     return calculator
@@ -194,8 +255,14 @@ def load_all_calculators(directory: Path) -> list[Castep]:
 
         for file in files:
             if file.endswith(".castep"):
-                root_directory = Path(root)
-                config = CastepConfig(root_directory, file.removesuffix(".castep"))
-                out.append(load_calculator(config))
+                try:
+                    root_directory = Path(root)
+                    config = CastepConfig(root_directory, file.removesuffix(".castep"))
+                    out.append(load_calculator(config))
+                except AttributeError:
+                    warnings.warn(
+                        f"unable to load calculator in {root}, skipping",
+                        stacklevel=1,
+                    )
 
     return out
